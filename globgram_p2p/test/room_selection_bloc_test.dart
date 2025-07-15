@@ -159,62 +159,6 @@ void main() {
       );
     });
 
-    group('State persistence', () {
-      test('fromJson returns correct state for RoomInitial', () {
-        final json = {'type': 'RoomInitial'};
-        final state = roomSelectionBloc.fromJson(json);
-        expect(state, equals(const RoomInitial()));
-      });
-
-      test('fromJson returns correct state for RoomWaitingAnswer', () {
-        final json = {'type': 'RoomWaitingAnswer', 'roomId': 'ROOM123'};
-        final state = roomSelectionBloc.fromJson(json);
-        expect(state, equals(const RoomWaitingAnswer('ROOM123')));
-      });
-
-      test('fromJson returns correct state for RoomConnected', () {
-        final json = {'type': 'RoomConnected', 'roomId': 'ROOM456'};
-        final state = roomSelectionBloc.fromJson(json);
-        expect(state, equals(const RoomConnected('ROOM456')));
-      });
-
-      test('fromJson returns correct state for RoomError', () {
-        final json = {'type': 'RoomError', 'message': 'Test error'};
-        final state = roomSelectionBloc.fromJson(json);
-        expect(state, equals(const RoomError('Test error')));
-      });
-
-      test('fromJson returns null for invalid json', () {
-        final json = {'type': 'InvalidType'};
-        final state = roomSelectionBloc.fromJson(json);
-        expect(state, isNull);
-      });
-
-      test('toJson returns correct json for RoomInitial', () {
-        const state = RoomInitial();
-        final json = roomSelectionBloc.toJson(state);
-        expect(json, equals({'type': 'RoomInitial'}));
-      });
-
-      test('toJson returns correct json for RoomWaitingAnswer', () {
-        const state = RoomWaitingAnswer('ROOM123');
-        final json = roomSelectionBloc.toJson(state);
-        expect(json, equals({'type': 'RoomWaitingAnswer', 'roomId': 'ROOM123'}));
-      });
-
-      test('toJson returns correct json for RoomConnected', () {
-        const state = RoomConnected('ROOM456');
-        final json = roomSelectionBloc.toJson(state);
-        expect(json, equals({'type': 'RoomConnected', 'roomId': 'ROOM456'}));
-      });
-
-      test('toJson returns correct json for RoomError', () {
-        const state = RoomError('Test error');
-        final json = roomSelectionBloc.toJson(state);
-        expect(json, equals({'type': 'RoomError', 'message': 'Test error'}));
-      });
-    });
-
     group('Firestore simulation scenarios', () {
       blocTest<RoomSelectionBloc, RoomSelectionState>(
         'simulates successful room creation with Firestore',

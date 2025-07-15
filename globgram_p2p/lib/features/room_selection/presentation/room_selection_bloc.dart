@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:bloc/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
 import '../data/room_remote_data_source.dart';
 
