@@ -103,10 +103,10 @@ class WebRTCService {
       );
 
       _logger.d('Sending message: $text (MOCK MODE)');
-      
+
       // In mock mode, just add to local stream
       _messageController.add(chatMessage);
-      
+
       // Simulate receiving an echo message from peer after 1 second
       Timer(const Duration(seconds: 1), () {
         final echoMessage = ChatMessage.fromPeer(
@@ -115,7 +115,7 @@ class WebRTCService {
         );
         _messageController.add(echoMessage);
       });
-      
+
       _logger.d('Message sent successfully (MOCK MODE)');
     } catch (error) {
       _logger.e('Failed to send message: $error');

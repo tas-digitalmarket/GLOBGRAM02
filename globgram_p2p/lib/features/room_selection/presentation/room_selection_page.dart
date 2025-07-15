@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/service_locator.dart';
 import '../data/room_remote_data_source.dart';
 import 'room_selection_bloc.dart';
@@ -35,7 +36,8 @@ class RoomSelectionView extends StatelessWidget {
           } else if (state is RoomError) {
             _showErrorDialog(context, state.message);
           } else if (state is RoomConnected) {
-            _showSuccessDialog(context, 'Successfully connected to room!');
+            // Navigate to chat page when room is connected
+            context.go('/chat/${state.roomId}');
           }
         },
         child: Padding(
@@ -343,35 +345,6 @@ class RoomSelectionView extends StatelessWidget {
               context.read<RoomSelectionBloc>().add(const ClearRequested());
             },
             child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showSuccessDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green),
-            SizedBox(width: 8),
-            Text('Success'),
-          ],
-        ),
-        content: Text(message),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              // Navigate to video call screen when implemented
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Start Video Call'),
           ),
         ],
       ),

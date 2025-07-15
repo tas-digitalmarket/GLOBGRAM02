@@ -343,13 +343,13 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
         ChatInitial _ => {'type': 'ChatInitial'},
         ChatConnecting _ => {'type': 'ChatConnecting'},
         ChatReady readyState => {
-            'type': 'ChatReady',
-            'history': readyState.history.map((e) => e.toJson()).toList(),
-          },
+          'type': 'ChatReady',
+          'history': readyState.history.map((e) => e.toJson()).toList(),
+        },
         ChatError errorState => {
-            'type': 'ChatError',
-            'message': errorState.message,
-          },
+          'type': 'ChatError',
+          'message': errorState.message,
+        },
         _ => null,
       };
     } catch (error) {
