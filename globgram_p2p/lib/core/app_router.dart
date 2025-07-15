@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/room_selection_page.dart';
+import 'package:globgram_p2p/features/chat/presentation/chat_bloc.dart';
+import 'package:globgram_p2p/core/service_locator.dart';
 import '../features/chat/presentation/chat_page.dart';
 
 final appRouter = GoRouter(
@@ -20,7 +23,14 @@ final appRouter = GoRouter(
       name: 'chat',
       builder: (context, state) {
         final roomId = state.pathParameters['roomId']!;
-        return ChatPage(roomId: roomId);
+        return BlocProvider<ChatBloc>(
+          create: (context) {
+            final chatBloc = getIt<ChatBloc>();
+            chatBloc.initializeConnection(roomId, asCaller: true);
+            return chatBloc;
+          },
+          child: ChatPage(roomId: roomId),
+        );
       },
     ),
   ],

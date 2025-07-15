@@ -14,6 +14,9 @@ Future<void> setupServiceLocator() async {
   // WebRTC service (singleton)
   getIt.registerLazySingleton<WebRTCService>(() => WebRTCService());
 
-  // ChatBloc (depends on WebRTCService)
-  getIt.registerFactory<ChatBloc>(() => ChatBloc(getIt<WebRTCService>()));
+  // ChatBloc (factory - new instance each time)
+  getIt.registerFactory<ChatBloc>(() {
+    final webRTCService = getIt<WebRTCService>();
+    return ChatBloc(webRTCService);
+  });
 }
