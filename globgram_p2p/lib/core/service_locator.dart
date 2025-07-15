@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import '../features/room_selection/data/room_remote_data_source.dart';
 // import '../features/chat/data/webrtc_service.dart';
 import '../features/chat/data/webrtc_service_mock.dart';
+import '../features/chat/presentation/chat_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -15,4 +16,7 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<WebRTCService>(
     () => WebRTCService(), // Mock service for web testing
   );
+
+  // Register ChatBloc
+  getIt.registerLazySingleton<ChatBloc>(() => ChatBloc(getIt<WebRTCService>()));
 }
