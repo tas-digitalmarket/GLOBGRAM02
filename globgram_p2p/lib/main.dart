@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:flutter/foundation.dart';
-import 'core/app_router.dart';
-import 'core/app_theme.dart';
-import 'core/service_locator.dart';
+import 'package:globgram_p2p/core/app_router.dart';
+import 'package:globgram_p2p/core/app_theme.dart';
+import 'package:globgram_p2p/core/service_locator.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

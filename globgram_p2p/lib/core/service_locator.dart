@@ -1,7 +1,7 @@
 import 'package:get_it/get_it.dart';
-import '../features/room_selection/data/room_remote_data_source.dart';
-import '../features/chat/data/webrtc_service_mock.dart'; // یا webrtc_service.dart
-import '../features/chat/presentation/chat_bloc.dart';
+import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source.dart';
+import 'package:globgram_p2p/features/chat/data/webrtc_service_mock.dart';
+import 'package:globgram_p2p/features/chat/presentation/chat_bloc.dart';
 
 final getIt = GetIt.instance;
 
