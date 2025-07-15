@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source.dart';
@@ -9,11 +10,25 @@ import 'package:globgram_p2p/features/room_selection/presentation/room_selection
 // Mock class for RoomRemoteDataSource
 class MockRoomRemoteDataSource extends Mock implements RoomRemoteDataSource {}
 
+// Mock class for HydratedStorage
+class MockHydratedStorage extends Mock implements Storage {}
+
 void main() {
   group('RoomSelectionBloc', () {
     late RoomSelectionBloc roomSelectionBloc;
     late MockRoomRemoteDataSource mockRoomDataSource;
     late FakeFirebaseFirestore fakeFirestore;
+    late MockHydratedStorage mockStorage;
+
+    setUpAll(() {
+      // Initialize HydratedBloc storage for testing
+      mockStorage = MockHydratedStorage();
+      when(() => mockStorage.read(any())).thenReturn(null);
+      when(() => mockStorage.write(any(), any())).thenAnswer((_) async {});
+      when(() => mockStorage.delete(any())).thenAnswer((_) async {});
+      when(() => mockStorage.clear()).thenAnswer((_) async {});
+      HydratedBloc.storage = mockStorage;
+    });
 
     setUp(() {
       mockRoomDataSource = MockRoomRemoteDataSource();
