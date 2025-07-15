@@ -85,10 +85,9 @@ class RoomSelectionBloc extends Bloc<RoomSelectionEvent, RoomSelectionState> {
   final RoomRemoteDataSource _roomDataSource;
   final Logger _logger = Logger();
 
-  RoomSelectionBloc({
-    required RoomRemoteDataSource roomDataSource,
-  })  : _roomDataSource = roomDataSource,
-        super(const RoomInitial()) {
+  RoomSelectionBloc({required RoomRemoteDataSource roomDataSource})
+    : _roomDataSource = roomDataSource,
+      super(const RoomInitial()) {
     on<CreateRequested>(_onCreateRequested);
     on<JoinRequested>(_onJoinRequested);
     on<ClearRequested>(_onClearRequested);
@@ -104,7 +103,7 @@ class RoomSelectionBloc extends Bloc<RoomSelectionEvent, RoomSelectionState> {
 
       final roomId = await _roomDataSource.createRoom();
       _logger.i('Room created successfully: $roomId');
-      
+
       emit(RoomWaitingAnswer(roomId));
     } catch (error) {
       _logger.e('Failed to create room: $error');
@@ -122,7 +121,7 @@ class RoomSelectionBloc extends Bloc<RoomSelectionEvent, RoomSelectionState> {
 
       await _roomDataSource.joinRoom(event.roomId);
       _logger.i('Successfully joined room: ${event.roomId}');
-      
+
       emit(RoomConnected(event.roomId));
     } catch (error) {
       _logger.e('Failed to join room ${event.roomId}: $error');
@@ -137,5 +136,4 @@ class RoomSelectionBloc extends Bloc<RoomSelectionEvent, RoomSelectionState> {
     _logger.i('Clearing room selection state');
     emit(const RoomInitial());
   }
-
 }

@@ -9,7 +9,7 @@ import 'core/service_locator.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
-  
+
   // Initialize HydratedBloc storage
   if (kIsWeb) {
     // For web, use a simple storage implementation
@@ -23,7 +23,7 @@ Future<void> main() async {
       storageDirectory: HydratedStorage.webStorageDirectory,
     );
   }
-  
+
   await setupServiceLocator();
   runApp(
     EasyLocalization(

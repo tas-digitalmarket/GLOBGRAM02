@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
+import '../../../core/service_locator.dart';
 import '../data/room_remote_data_source.dart';
 import 'room_selection_bloc.dart';
 
@@ -11,9 +11,8 @@ class RoomSelectionPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => RoomSelectionBloc(
-        roomDataSource: GetIt.instance<RoomRemoteDataSource>(),
-      ),
+      create: (_) =>
+          RoomSelectionBloc(roomDataSource: getIt<RoomRemoteDataSource>()),
       child: const RoomSelectionView(),
     );
   }
@@ -45,34 +44,25 @@ class RoomSelectionView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(
-                Icons.video_call,
-                size: 80,
-                color: Colors.teal,
-              ),
+              const Icon(Icons.video_call, size: 80, color: Colors.teal),
               const SizedBox(height: 32),
               const Text(
                 'Welcome to GlobGram P2P',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               const Text(
                 'Create a new room or join an existing one',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
               BlocBuilder<RoomSelectionBloc, RoomSelectionState>(
                 builder: (context, state) {
-                  final isLoading = state is RoomCreating || state is RoomConnecting;
-                  
+                  final isLoading =
+                      state is RoomCreating || state is RoomConnecting;
+
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -174,11 +164,7 @@ class RoomSelectionView extends StatelessWidget {
                         padding: EdgeInsets.all(16.0),
                         child: Column(
                           children: [
-                            Icon(
-                              Icons.videocam,
-                              color: Colors.blue,
-                              size: 32,
-                            ),
+                            Icon(Icons.videocam, color: Colors.blue, size: 32),
                             SizedBox(height: 8),
                             Text(
                               'Connected to Room!',
@@ -209,7 +195,7 @@ class RoomSelectionView extends StatelessWidget {
 
   void _showJoinRoomDialog(BuildContext context) {
     final roomIdController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(

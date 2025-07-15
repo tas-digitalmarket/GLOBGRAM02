@@ -31,26 +31,16 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.video_call,
-              size: 100,
-              color: Colors.teal,
-            ),
+            const Icon(Icons.video_call, size: 100, color: Colors.teal),
             const SizedBox(height: 32),
             const Text(
               'Welcome to GlobGram P2P',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             const Text(
               'Peer-to-peer video calling made simple',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 48),
             ElevatedButton.icon(
