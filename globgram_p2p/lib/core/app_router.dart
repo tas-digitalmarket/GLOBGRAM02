@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../features/room_selection/presentation/room_selection_page.dart';
 
 final appRouter = GoRouter(
   routes: [
@@ -11,7 +12,7 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/room',
       name: 'roomSelection',
-      builder: (context, state) => const RoomSelectionScreen(),
+      builder: (context, state) => const RoomSelectionPage(),
     ),
   ],
 );
@@ -24,42 +25,47 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('GlobGram P2P'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Welcome to GlobGram P2P'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => context.go('/room'),
-              child: const Text('Join Room'),
+            const Icon(
+              Icons.video_call,
+              size: 100,
+              color: Colors.teal,
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class RoomSelectionScreen extends StatelessWidget {
-  const RoomSelectionScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Room Selection'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Select a Room'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => context.go('/'),
-              child: const Text('Back to Home'),
+            const SizedBox(height: 32),
+            const Text(
+              'Welcome to GlobGram P2P',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Peer-to-peer video calling made simple',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 48),
+            ElevatedButton.icon(
+              onPressed: () => context.go('/room'),
+              icon: const Icon(Icons.meeting_room),
+              label: const Text('Get Started'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                textStyle: const TextStyle(fontSize: 18),
+              ),
             ),
           ],
         ),
