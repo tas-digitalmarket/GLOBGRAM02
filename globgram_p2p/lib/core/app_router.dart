@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/room_selection_page.dart';
-// import 'package:globgram_p2p/features/chat/presentation/chat_page.dart';
+import '../features/chat/presentation/chat_page.dart';
 
 final appRouter = GoRouter(
   routes: [
@@ -15,15 +15,14 @@ final appRouter = GoRouter(
       name: 'roomSelection',
       builder: (context, state) => const RoomSelectionPage(),
     ),
-    // TODO: Re-enable chat route after fixing ChatPage
-    // GoRoute(
-    //   path: '/chat/:roomId',
-    //   name: 'chat',
-    //   builder: (context, state) {
-    //     final roomId = state.pathParameters['roomId']!;
-    //     return ChatPage(roomId: roomId);
-    //   },
-    // ),
+    GoRoute(
+      path: '/chat/:roomId',
+      name: 'chat',
+      builder: (context, state) {
+        final roomId = state.pathParameters['roomId']!;
+        return ChatPage(roomId: roomId);
+      },
+    ),
   ],
 );
 

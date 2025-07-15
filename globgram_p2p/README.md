@@ -1,16 +1,147 @@
-# globgram_p2p
+# GlobGram P2P
 
-A new Flutter project.
+A Flutter WebRTC peer-to-peer chat application with real-time messaging capabilities.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+- ✅ P2P WebRTC Connection
+- ✅ Real-time Chat Messaging
+- ✅ Room-based Communication
+- ✅ Modern Material 3 UI
+- ✅ State Management with BloC
+- ✅ Dependency Injection with GetIt
+- ✅ Local State Persistence with HydratedBloC
 
-A few resources to get you started if this is your first Flutter project:
+## Architecture
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+This application follows Clean Architecture principles:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```
+lib/
+├── core/
+│   ├── service_locator.dart    # Dependency injection setup
+│   └── app_router.dart         # Go Router configuration
+├── features/
+│   ├── chat/
+│   │   ├── domain/
+│   │   │   └── chat_message.dart
+│   │   ├── data/
+│   │   │   └── webrtc_service.dart
+│   │   └── presentation/
+│   │       ├── chat_bloc.dart
+│   │       └── chat_page.dart
+│   └── room_selection/
+│       └── presentation/
+│           └── room_selection_page.dart
+└── main.dart
+```
+
+## Build Instructions
+
+### Prerequisites
+
+- Flutter SDK ≥ 3.8.1
+- Dart SDK ≥ 3.8.1
+- Chrome browser (for web testing)
+
+### Setup
+
+1. **Install dependencies:**
+   ```bash
+   flutter pub get
+   ```
+
+2. **Generate code (for Freezed models):**
+   ```bash
+   flutter packages pub run build_runner build --delete-conflicting-outputs
+   ```
+
+3. **Run the application:**
+   ```bash
+   # For web (recommended for WebRTC testing)
+   flutter run -d chrome
+   
+   # For mobile platforms
+   flutter run -d <device-id>
+   ```
+
+### Development Commands
+
+```bash
+# Code generation
+flutter packages pub run build_runner build
+
+# Watch mode for development
+flutter packages pub run build_runner watch
+
+# Clean build
+flutter clean && flutter pub get
+
+# Analyze code
+flutter analyze
+
+# Run tests
+flutter test
+```
+
+## Usage
+
+1. **Home Screen**: Launch the application
+2. **Room Selection**: Enter or create a room ID
+3. **Chat Interface**: 
+   - Real-time messaging with WebRTC
+   - Connection status indicators:
+     - ⏸ Grey: Disconnected
+     - ⚡ Yellow: Connecting
+     - ✅ Green: Connected & Ready
+   - Message bubbles:
+     - Self messages: Right-aligned, light green (#E1FFC7)
+     - Peer messages: Left-aligned, grey-white
+   - Input controls: Emoji, text field, attach, send
+
+## WebRTC Configuration
+
+For development and testing, you may need to configure Firestore security rules:
+
+```javascript
+// Firestore Security Rules for WebRTC Signaling
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read/write access to signaling data
+    match /rooms/{roomId}/signals/{signalId} {
+      allow read, write: if true; // For development only
+    }
+    
+    // Allow read/write access to room metadata
+    match /rooms/{roomId} {
+      allow read, write: if true; // For development only
+    }
+  }
+}
+```
+
+**⚠️ Security Notice**: The above rules are for development only. In production, implement proper authentication and authorization.
+
+## Technologies Used
+
+- **Flutter**: Cross-platform UI framework
+- **WebRTC**: Real-time peer-to-peer communication
+- **BloC**: State management pattern
+- **GetIt**: Dependency injection
+- **HydratedBloC**: State persistence
+- **Go Router**: Declarative routing
+- **Freezed**: Code generation for immutable classes
+- **Logger**: Structured logging
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
