@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:hydrated_bloc/hydrated_bloc.dart';
+import 'package:bloc/bloc.dart';
 import 'package:logger/logger.dart';
 import '../data/room_remote_data_source.dart';
 
@@ -81,7 +81,7 @@ class RoomError extends RoomSelectionState {
 }
 
 // Bloc
-class RoomSelectionBloc extends HydratedBloc<RoomSelectionEvent, RoomSelectionState> {
+class RoomSelectionBloc extends Bloc<RoomSelectionEvent, RoomSelectionState> {
   final RoomRemoteDataSource _roomDataSource;
   final Logger _logger = Logger();
 
@@ -138,75 +138,4 @@ class RoomSelectionBloc extends HydratedBloc<RoomSelectionEvent, RoomSelectionSt
     emit(const RoomInitial());
   }
 
-  @override
-  RoomSelectionState? fromJson(Map<String, dynamic> json) {
-    try {
-      final type = json['type'] as String?;
-      
-      switch (type) {
-        case 'RoomInitial':
-          return const RoomInitial();
-        case 'RoomCreating':
-          return const RoomCreating();
-        case 'RoomWaitingAnswer':
-          final roomId = json['roomId'] as String;
-          return RoomWaitingAnswer(roomId);
-        case 'RoomConnecting':
-          final roomId = json['roomId'] as String;
-          return RoomConnecting(roomId);
-        case 'RoomConnected':
-          final roomId = json['roomId'] as String;
-          return RoomConnected(roomId);
-        case 'RoomError':
-          final message = json['message'] as String;
-          return RoomError(message);
-        default:
-          return null;
-      }
-    } catch (error) {
-      _logger.e('Failed to restore state from JSON: $error');
-      return null;
-    }
-  }
-
-  @override
-  Map<String, dynamic>? toJson(RoomSelectionState state) {
-    try {
-      switch (state.runtimeType) {
-        case RoomInitial:
-          return {'type': 'RoomInitial'};
-        case RoomCreating:
-          return {'type': 'RoomCreating'};
-        case RoomWaitingAnswer:
-          final waitingState = state as RoomWaitingAnswer;
-          return {
-            'type': 'RoomWaitingAnswer',
-            'roomId': waitingState.roomId,
-          };
-        case RoomConnecting:
-          final connectingState = state as RoomConnecting;
-          return {
-            'type': 'RoomConnecting',
-            'roomId': connectingState.roomId,
-          };
-        case RoomConnected:
-          final connectedState = state as RoomConnected;
-          return {
-            'type': 'RoomConnected',
-            'roomId': connectedState.roomId,
-          };
-        case RoomError:
-          final errorState = state as RoomError;
-          return {
-            'type': 'RoomError',
-            'message': errorState.message,
-          };
-        default:
-          return null;
-      }
-    } catch (error) {
-      _logger.e('Failed to serialize state to JSON: $error');
-      return null;
-    }
-  }
 }

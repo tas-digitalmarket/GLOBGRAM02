@@ -7,6 +7,10 @@ import 'core/service_locator.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
+  
+  // TODO: Initialize HydratedBloc storage later
+  // For now, skip HydratedBloc to get basic app running
+  
   await setupServiceLocator();            // رجیستر سرویس‌ها (فعلاً خالی)
   runApp(
     EasyLocalization(
