@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/room_selection/presentation/room_selection_page.dart';
-import '../features/chat/presentation/chat_page.dart'; // TODO: Use package: import when publishing
+import '../features/chat/presentation/chat_page.dart';
 
 final appRouter = GoRouter(
   routes: [
@@ -11,7 +11,7 @@ final appRouter = GoRouter(
       builder: (context, state) => const HomeScreen(),
     ),
     GoRoute(
-      path: '/room',
+      path: '/room-selection',
       name: 'roomSelection',
       builder: (context, state) => const RoomSelectionPage(),
     ),
@@ -53,7 +53,7 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 48),
             ElevatedButton.icon(
-              onPressed: () => context.go('/room'),
+              onPressed: () => context.go('/room-selection'),
               icon: const Icon(Icons.meeting_room),
               label: const Text('Get Started'),
               style: ElevatedButton.styleFrom(
@@ -61,8 +61,6 @@ class HomeScreen extends StatelessWidget {
                   horizontal: 32,
                   vertical: 16,
                 ),
-                backgroundColor: Colors.teal,
-                foregroundColor: Colors.white,
                 textStyle: const TextStyle(fontSize: 18),
               ),
             ),

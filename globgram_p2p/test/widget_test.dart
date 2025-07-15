@@ -8,7 +8,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:easy_localization/easy_localization.dart';
-
 import 'package:globgram_p2p/main.dart';
 
 void main() {
@@ -22,7 +21,7 @@ void main() {
         supportedLocales: const [Locale('en', 'US')],
         path: 'assets/translations',
         fallbackLocale: const Locale('en', 'US'),
-        child: const GlobgramApp(),
+        child: const MyApp(),
       ),
     );
     
