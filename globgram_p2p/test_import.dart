@@ -1,5 +1,6 @@
 import '../features/chat/presentation/chat_page.dart';
 
 void main() {
-  print('ChatPage imported successfully');
+  // Test import
+  const ChatPage(roomId: 'test');
 }
