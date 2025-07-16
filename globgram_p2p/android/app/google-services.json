@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "786174087282",
+    "project_id": "globgram02",
+    "storage_bucket": "globgram02.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:786174087282:android:81cb03d084ac0b7944f2eb",
+        "android_client_info": {
+          "package_name": "com.example.globgram_p2p"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAtAUknIOZ92eKNPo9FhwIdNR2RSawxGnY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
