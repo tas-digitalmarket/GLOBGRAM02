@@ -13,14 +13,14 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
 
-  // Initialize Firebase
+  // Initialize Firebase (not needed for local testing, but keeping for future use)
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    Logger().i('[✅] Firebase initialized successfully');
+    Logger().i('[✅] Firebase initialized successfully (not used in debug mode)');
   } catch (e) {
-    Logger().e('[❌] Firebase initialization failed: $e');
+    Logger().w('[⚠️] Firebase initialization failed (using local storage): $e');
   }
 
   // Initialize HydratedBloc storage

@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'package:logger/logger.dart';
 import '../domain/chat_message.dart';
+import '../domain/webrtc_service.dart';
 
-enum ConnectionState { disconnected, connecting, connected, failed }
-
-class WebRTCService {
+class WebRTCServiceMock implements WebRTCService {
   static final Logger _logger = Logger();
 
   // Mock WebRTC connections for web testing

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:logger/logger.dart';
-import '../data/webrtc_service_mock.dart';
+import '../domain/webrtc_service.dart';
 import '../domain/chat_message.dart';
 
 // Events

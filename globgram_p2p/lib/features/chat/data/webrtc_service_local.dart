@@ -4,11 +4,11 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:logger/logger.dart';
 import '../domain/chat_message.dart';
 import '../domain/webrtc_service.dart';
-import '../../room_selection/data/room_remote_data_source_firestore.dart';
+import '../../room_selection/data/room_remote_data_source_local.dart';
 
-class WebRTCServiceImpl implements WebRTCService {
+class WebRTCServiceLocal implements WebRTCService {
   static final Logger _logger = Logger();
-  final RoomRemoteDataSourceFirestore _firestoreDataSource;
+  final RoomRemoteDataSourceLocal _localDataSource;
 
   RTCPeerConnection? _peerConnection;
   RTCDataChannel? _dataChannel;
@@ -26,13 +26,15 @@ class WebRTCServiceImpl implements WebRTCService {
   // ICE candidates subscription
   StreamSubscription<RTCIceCandidate>? _iceCandidatesSubscription;
 
-  WebRTCServiceImpl(this._firestoreDataSource);
+  WebRTCServiceLocal(this._localDataSource);
 
   // Public streams
+  @override
   Stream<ChatMessage> get messageStream => _dataMessageController.stream;
+  @override
   Stream<ConnectionState> get connectionStateStream => _connectionStateController.stream;
-  Stream<String> get onError => _errorController.stream;
 
+  @override
   bool get isConnected => _connectionState == ConnectionState.connected;
   ConnectionState _connectionState = ConnectionState.disconnected;
 
@@ -57,7 +59,7 @@ class WebRTCServiceImpl implements WebRTCService {
       _peerConnection = await createPeerConnection(configuration);
       _setupPeerConnectionListeners();
       
-      _logger.i('Peer connection created successfully');
+      _logger.i('Peer connection created successfully (Local)');
     } catch (e) {
       _logger.e('Failed to create peer connection: $e');
       _errorController.add('Failed to create peer connection: $e');
@@ -66,9 +68,10 @@ class WebRTCServiceImpl implements WebRTCService {
   }
 
   /// Initialize WebRTC as caller (creates offer)
+  @override
   Future<void> initAsCaller(String roomId) async {
     try {
-      _logger.i('Initializing WebRTC as caller for room: $roomId');
+      _logger.i('Initializing WebRTC as caller for room: $roomId (Local)');
       
       _currentRoomId = roomId;
       _isCaller = true;
@@ -80,8 +83,8 @@ class WebRTCServiceImpl implements WebRTCService {
       final offer = await _peerConnection!.createOffer();
       await _peerConnection!.setLocalDescription(offer);
       
-      // Store offer in Firestore
-      await _firestoreDataSource.setOffer(roomId, offer);
+      // Store offer in local storage
+      await _localDataSource.setOffer(roomId, offer);
       
       // Listen for ICE candidates from callee
       _listenToRemoteIceCandidates('callee');
@@ -92,7 +95,7 @@ class WebRTCServiceImpl implements WebRTCService {
       _isInitialized = true;
       _updateConnectionState(ConnectionState.connecting);
       
-      _logger.i('WebRTC caller initialization completed');
+      _logger.i('WebRTC caller initialization completed (Local)');
     } catch (e) {
       _logger.e('Failed to initialize as caller: $e');
       _errorController.add('Failed to initialize as caller: $e');
@@ -102,9 +105,10 @@ class WebRTCServiceImpl implements WebRTCService {
   }
 
   /// Initialize WebRTC as callee (receives offer and creates answer)
+  @override
   Future<void> initAsCallee(String roomId) async {
     try {
-      _logger.i('Initializing WebRTC as callee for room: $roomId');
+      _logger.i('Initializing WebRTC as callee for room: $roomId (Local)');
       
       _currentRoomId = roomId;
       _isCaller = false;
@@ -115,11 +119,11 @@ class WebRTCServiceImpl implements WebRTCService {
       _peerConnection!.onDataChannel = (channel) {
         _dataChannel = channel;
         _setupDataChannelListeners();
-        _logger.i('Data channel received from caller');
+        _logger.i('Data channel received from caller (Local)');
       };
       
-      // Get offer from Firestore
-      final roomData = await _firestoreDataSource.getRoomData(roomId);
+      // Get offer from local storage
+      final roomData = await _localDataSource.getRoomData(roomId);
       if (roomData == null || roomData['offer'] == null) {
         throw Exception('No offer found for room: $roomId');
       }
@@ -134,8 +138,8 @@ class WebRTCServiceImpl implements WebRTCService {
       final answer = await _peerConnection!.createAnswer();
       await _peerConnection!.setLocalDescription(answer);
       
-      // Store answer in Firestore
-      await _firestoreDataSource.setAnswer(roomId, answer);
+      // Store answer in local storage
+      await _localDataSource.setAnswer(roomId, answer);
       
       // Listen for ICE candidates from caller
       _listenToRemoteIceCandidates('caller');
@@ -143,7 +147,7 @@ class WebRTCServiceImpl implements WebRTCService {
       _isInitialized = true;
       _updateConnectionState(ConnectionState.connecting);
       
-      _logger.i('WebRTC callee initialization completed');
+      _logger.i('WebRTC callee initialization completed (Local)');
     } catch (e) {
       _logger.e('Failed to initialize as callee: $e');
       _errorController.add('Failed to initialize as callee: $e');
@@ -165,7 +169,7 @@ class WebRTCServiceImpl implements WebRTCService {
       );
       
       _setupDataChannelListeners();
-      _logger.i('Data channel "chat" created');
+      _logger.i('Data channel "chat" created (Local)');
     } catch (e) {
       _logger.e('Failed to create data channel: $e');
       _errorController.add('Failed to create data channel: $e');
@@ -179,7 +183,7 @@ class WebRTCServiceImpl implements WebRTCService {
 
     // Connection state changes
     _peerConnection!.onConnectionState = (state) {
-      _logger.i('Peer connection state changed: $state');
+      _logger.i('Peer connection state changed: $state (Local)');
       switch (state) {
         case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
           _updateConnectionState(ConnectionState.connected);
@@ -201,7 +205,7 @@ class WebRTCServiceImpl implements WebRTCService {
 
     // ICE candidate generation
     _peerConnection!.onIceCandidate = (candidate) {
-      _logger.d('ICE candidate generated: ${candidate.candidate}');
+      _logger.d('ICE candidate generated: ${candidate.candidate} (Local)');
       if (_currentRoomId != null) {
         _sendIceCandidate(candidate);
       }
@@ -209,7 +213,7 @@ class WebRTCServiceImpl implements WebRTCService {
 
     // ICE connection state changes
     _peerConnection!.onIceConnectionState = (state) {
-      _logger.i('ICE connection state: $state');
+      _logger.i('ICE connection state: $state (Local)');
       if (state == RTCIceConnectionState.RTCIceConnectionStateFailed) {
         _errorController.add('ICE connection failed');
       }
@@ -221,14 +225,14 @@ class WebRTCServiceImpl implements WebRTCService {
     if (_dataChannel == null) return;
 
     _dataChannel!.onDataChannelState = (state) {
-      _logger.i('Data channel state: $state');
+      _logger.i('Data channel state: $state (Local)');
       if (state == RTCDataChannelState.RTCDataChannelOpen) {
-        _logger.i('Data channel is now open for messaging');
+        _logger.i('Data channel is now open for messaging (Local)');
       }
     };
 
     _dataChannel!.onMessage = (message) {
-      _logger.d('Received message: ${message.text}');
+      _logger.d('Received message: ${message.text} (Local)');
       try {
         final Map<String, dynamic> messageData = jsonDecode(message.text);
         final chatMessage = ChatMessage.fromJson(messageData);
@@ -246,6 +250,7 @@ class WebRTCServiceImpl implements WebRTCService {
   }
 
   /// Send chat message through data channel
+  @override
   Future<void> sendMessage(String text) async {
     if (!_isInitialized) {
       throw StateError('WebRTC service not initialized');
@@ -268,7 +273,7 @@ class WebRTCServiceImpl implements WebRTCService {
       // Add to local stream for UI update
       _dataMessageController.add(chatMessage);
 
-      _logger.d('Message sent successfully: $text');
+      _logger.d('Message sent successfully: $text (Local)');
     } catch (e) {
       _logger.e('Failed to send message: $e');
       _errorController.add('Failed to send message: $e');
@@ -276,31 +281,31 @@ class WebRTCServiceImpl implements WebRTCService {
     }
   }
 
-  /// Send ICE candidate to Firestore
+  /// Send ICE candidate to local storage
   Future<void> _sendIceCandidate(RTCIceCandidate candidate) async {
     if (_currentRoomId == null) return;
 
     try {
       final type = _isCaller ? 'caller' : 'callee';
-      await _firestoreDataSource.addIceCandidate(_currentRoomId!, type, candidate);
-      _logger.d('ICE candidate sent to Firestore');
+      await _localDataSource.addIceCandidate(_currentRoomId!, type, candidate);
+      _logger.d('ICE candidate sent to local storage');
     } catch (e) {
       _logger.e('Failed to send ICE candidate: $e');
       _errorController.add('Failed to send ICE candidate: $e');
     }
   }
 
-  /// Listen to remote ICE candidates from Firestore
+  /// Listen to remote ICE candidates from local storage
   void _listenToRemoteIceCandidates(String remoteType) {
     if (_currentRoomId == null) return;
 
-    _iceCandidatesSubscription = _firestoreDataSource
+    _iceCandidatesSubscription = _localDataSource
         .listenIceCandidates(_currentRoomId!, remoteType)
         .listen(
       (candidate) async {
         try {
           await _peerConnection!.addCandidate(candidate);
-          _logger.d('Remote ICE candidate added');
+          _logger.d('Remote ICE candidate added (Local)');
         } catch (e) {
           _logger.e('Failed to add remote ICE candidate: $e');
         }
@@ -318,12 +323,12 @@ class WebRTCServiceImpl implements WebRTCService {
 
     Timer.periodic(const Duration(seconds: 2), (timer) async {
       try {
-        final roomData = await _firestoreDataSource.getRoomData(roomId);
+        final roomData = await _localDataSource.getRoomData(roomId);
         if (roomData != null && roomData['answer'] != null) {
           final answerData = roomData['answer'] as Map<String, dynamic>;
           final answer = RTCSessionDescription(answerData['sdp'], answerData['type']);
           await _peerConnection!.setRemoteDescription(answer);
-          _logger.i('Answer received and set as remote description');
+          _logger.i('Answer received and set as remote description (Local)');
           timer.cancel();
         }
       } catch (e) {
@@ -336,54 +341,20 @@ class WebRTCServiceImpl implements WebRTCService {
     });
   }
 
-  /// Add ICE candidate manually
-  Future<void> addIceCandidate(RTCIceCandidate candidate) async {
-    if (_peerConnection == null) {
-      throw StateError('Peer connection not initialized');
-    }
-
-    try {
-      await _peerConnection!.addCandidate(candidate);
-      _logger.d('ICE candidate added successfully');
-    } catch (e) {
-      _logger.e('Failed to add ICE candidate: $e');
-      rethrow;
-    }
-  }
-
-  /// Set remote description (offer or answer)
-  Future<void> setRemoteDescription(RTCSessionDescription description) async {
-    if (_peerConnection == null) {
-      throw StateError('Peer connection not initialized');
-    }
-
-    try {
-      await _peerConnection!.setRemoteDescription(description);
-      _logger.i('Remote description set successfully');
-    } catch (e) {
-      _logger.e('Failed to set remote description: $e');
-      rethrow;
-    }
-  }
-
-  /// Get local description
-  Future<RTCSessionDescription?> getLocalDescription() async {
-    return _peerConnection?.getLocalDescription();
-  }
-
   /// Update connection state and notify listeners
   void _updateConnectionState(ConnectionState newState) {
     if (_connectionState != newState) {
       _connectionState = newState;
       _connectionStateController.add(newState);
-      _logger.i('Connection state updated to: $newState');
+      _logger.i('Connection state updated to: $newState (Local)');
     }
   }
 
   /// Dispose of all resources
+  @override
   Future<void> dispose() async {
     try {
-      _logger.i('Disposing WebRTC service');
+      _logger.i('Disposing WebRTC service (Local)');
 
       // Cancel ICE candidates subscription
       await _iceCandidatesSubscription?.cancel();
@@ -405,7 +376,7 @@ class WebRTCServiceImpl implements WebRTCService {
       _currentRoomId = null;
       _updateConnectionState(ConnectionState.disconnected);
 
-      _logger.i('WebRTC service disposed successfully');
+      _logger.i('WebRTC service disposed successfully (Local)');
     } catch (e) {
       _logger.e('Error during disposal: $e');
     }
