@@ -7,6 +7,7 @@ import 'package:logger/logger.dart';
 import 'package:globgram_p2p/core/app_router.dart';
 import 'package:globgram_p2p/core/app_theme.dart';
 import 'package:globgram_p2p/core/service_locator.dart';
+import 'package:globgram_p2p/core/presentation/error_screen.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -17,11 +18,20 @@ Future<void> main() async {
     // Initialize EasyLocalization
     await EasyLocalization.ensureInitialized();
 
-    // Initialize Firebase
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    Logger().i('[✅] Firebase initialized successfully');
+    // Initialize Firebase with try/catch
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      Logger().i('[✅] Firebase initialized successfully');
+    } catch (firebaseError, stackTrace) {
+      debugPrint('[❌] Firebase initialization failed: $firebaseError');
+      debugPrint('Stack trace: $stackTrace');
+      
+      // Show error screen for Firebase failure
+      runApp(_buildFirebaseErrorApp(firebaseError.toString()));
+      return;
+    }
 
     // Initialize HydratedBloc storage
     if (kIsWeb) {
@@ -53,81 +63,49 @@ Future<void> main() async {
   } catch (e, stackTrace) {
     Logger().e('[❌] Application initialization failed: $e');
     Logger().e('Stack trace: $stackTrace');
+    debugPrint('[❌] Application initialization failed: $e');
+    debugPrint('Stack trace: $stackTrace');
     
     // Run fallback error app
     runApp(_buildErrorApp(e.toString()));
   }
 }
 
-/// Build error app when initialization fails
+/// Build Firebase error app when Firebase initialization fails
+Widget _buildFirebaseErrorApp(String error) {
+  return MaterialApp(
+    title: 'GlobGram P2P - Firebase Error',
+    home: ErrorScreen(
+      error: 'Firebase initialization failed:\n\n$error',
+      onRetry: () async {
+        // Trigger retry by calling main again
+        await _retryInitialization();
+      },
+    ),
+  );
+}
+
+/// Build general error app when other initialization fails
 Widget _buildErrorApp(String error) {
   return MaterialApp(
     title: 'GlobGram P2P - Error',
-    home: Scaffold(
-      backgroundColor: Colors.red.shade50,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 80,
-                color: Colors.red.shade600,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Initialization Failed',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red.shade800,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'The application failed to initialize properly.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.red.shade700,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: SelectableText(
-                  error,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  // Restart the app by calling main again
-                  main();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade600,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Retry Initialization'),
-              ),
-            ],
-          ),
-        ),
-      ),
+    home: ErrorScreen(
+      error: 'Application initialization failed:\n\n$error',
+      onRetry: () async {
+        // Trigger retry by calling main again
+        await _retryInitialization();
+      },
     ),
   );
+}
+
+/// Retry initialization by calling main again
+Future<void> _retryInitialization() async {
+  try {
+    main();
+  } catch (e) {
+    debugPrint('[❌] Retry failed: $e');
+  }
 }
 
 class MyApp extends StatelessWidget {

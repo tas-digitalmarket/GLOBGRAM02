@@ -1,6 +1,6 @@
 import 'dart:async';
-import '../models/signaling_models.dart';
-import 'signaling_data_source.dart';
+import 'package:globgram_p2p/features/room_selection/data/models/signaling_models.dart';
+import 'package:globgram_p2p/features/room_selection/data/datasources/signaling_data_source.dart';
 
 /// In-memory implementation of SignalingDataSource for testing and fallback
 class InMemorySignalingDataSource implements SignalingDataSource {

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:logger/logger.dart';
-import '../domain/chat_message.dart';
+import 'package:globgram_p2p/features/chat/domain/chat_message.dart';
 
 enum ConnectionState { disconnected, connecting, connected, failed }
 

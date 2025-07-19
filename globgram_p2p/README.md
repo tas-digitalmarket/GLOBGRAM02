@@ -139,66 +139,50 @@ service cloud.firestore {
 This application requires Firebase configuration for Firestore-based signaling. Follow these steps to set up Firebase:
 
 ### Prerequisites
-1. Install Flutter CLI (>=3.8.1)
-2. Install Firebase CLI: `npm install -g firebase-tools`
-3. Install FlutterFire CLI: `dart pub global activate flutterfire_cli`
+
+Install FlutterFire CLI:
+```bash
+dart pub global activate flutterfire_cli
+```
 
 ### Configuration Steps
 
-1. **Create Firebase Project**
+1. **Configure Firebase Project**
    ```bash
-   firebase login
-   firebase projects:create globgram-p2p-project
+   flutterfire configure --project <YOUR_FIREBASE_PROJECT>
    ```
+   
+2. **Update firebase_options.dart**
+   
+   After running the configure command, check `lib/firebase_options.dart` and replace any TODO placeholders with actual values:
+   - `TODO: Add your API key`
+   - `TODO: Add your App ID`
+   - `TODO: Add your Messaging Sender ID`
+   - `TODO: Add your Project ID`
+   - `TODO: Add your Auth Domain`
+   - `TODO: Add your Storage Bucket`
+   - `TODO: Add your Measurement ID`
 
-2. **Enable Required Services**
-   - Go to [Firebase Console](https://console.firebase.google.com)
+3. **Enable Firestore**
+   
+   In the [Firebase Console](https://console.firebase.google.com):
    - Navigate to your project
-   - Enable **Firestore Database** in production mode
-   - Enable **Authentication** (optional, for future use)
+   - Go to **Firestore Database**
+   - Click **Create database**
+   - Choose **Start in production mode** (or test mode for development)
 
-3. **Configure Flutter Project**
-   ```bash
-   # In the project root directory
-   flutterfire configure
-   ```
-   - Select your Firebase project
-   - Choose platforms: Web, Android, iOS (as needed)
-   - This will generate proper `firebase_options.dart`
+### Development Warning
 
-4. **Firestore Security Rules**
-   ```javascript
-   // Firestore rules for development (make more restrictive for production)
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /rooms/{roomId} {
-         allow read, write: if true; // TODO: Add proper authentication
-       }
-       match /rooms/{roomId}/iceCandidates/{document} {
-         allow read, write: if true; // TODO: Add proper authentication  
-       }
-     }
-   }
-   ```
+⚠️ **SECURITY WARNING**: Do NOT commit production API keys with permissive security rules to version control. Use environment-specific configurations and proper access controls for production deployments.
 
-5. **Deploy Firestore Rules**
-   ```bash
-   firebase deploy --only firestore:rules
-   ```
+### Quick Troubleshooting
 
-### Development vs Production
+If you encounter **"Unable to initialize Firebase"** errors:
 
-- **Development**: Uses placeholder values in `firebase_options.dart`
-- **Production**: Replace all TODO placeholders with actual Firebase project values
-
-### Troubleshooting
-
-- **Firebase initialization fails**: Check that `firebase_options.dart` has correct project configuration
-- **Firestore permission denied**: Verify Firestore security rules allow read/write access
-- **FlutterFire CLI not found**: Run `dart pub global activate flutterfire_cli`
-
-For more information, see [FlutterFire Documentation](https://firebase.flutter.dev/docs/overview/).
+1. **Check Internet Connection**: Ensure your device/emulator has internet access
+2. **Verify Options File**: Confirm `lib/firebase_options.dart` contains valid project configuration
+3. **Restart Application**: Try hot restart (not just hot reload) after configuration changes
+4. **Check Console**: Look for detailed error messages in the Flutter console
 
 ## Contributing
 

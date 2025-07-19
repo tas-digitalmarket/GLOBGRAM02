@@ -291,12 +291,17 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
 
   void initializeConnection(String roomId, {bool asCaller = true}) async {
     try {
+      _logger.i('[🎯] ChatBloc.initializeConnection - roomId: $roomId, asCaller: $asCaller');
       if (asCaller) {
+        _logger.i('[🎯] Initializing as CALLER (room creator)');
         await _webrtcService.initAsCaller(roomId);
       } else {
+        _logger.i('[🎯] Initializing as CALLEE (room joiner)');
         await _webrtcService.initAsCallee(roomId);
       }
+      _logger.i('[🎯] WebRTC initialization completed successfully');
     } catch (error) {
+      _logger.e('[🐛] WebRTC initialization failed: $error');
       add(const ConnectionStateChanged(ConnectionState.failed));
     }
   }

@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:logger/logger.dart';
-import '../domain/chat_message.dart';
-import '../domain/webrtc_service.dart';
-import '../../room_selection/data/room_remote_data_source_local.dart';
+import 'package:globgram_p2p/features/chat/domain/chat_message.dart';
+import 'package:globgram_p2p/features/chat/domain/webrtc_service.dart';
+import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source_local.dart';
 
 class WebRTCServiceLocal implements WebRTCService {
   static final Logger _logger = Logger();
