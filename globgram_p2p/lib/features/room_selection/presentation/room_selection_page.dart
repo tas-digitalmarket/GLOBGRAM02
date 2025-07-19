@@ -3,9 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:globgram_p2p/core/service_locator.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/room_selection_local_bloc.dart';
-import 'package:globgram_p2p/features/room_selection/presentation/dialogs/join_room_dialog.dart';
-import 'package:globgram_p2p/features/room_selection/presentation/dialogs/error_room_dialog.dart';
-import 'package:globgram_p2p/features/room_selection/presentation/dialogs/loading_room_dialog.dart';
+import 'package:globgram_p2p/features/room_selection/presentation/dialogs/dialog_controller.dart';
 
 class RoomSelectionPage extends StatelessWidget {
   const RoomSelectionPage({super.key});
@@ -27,7 +25,19 @@ class RoomSelectionView extends StatefulWidget {
 }
 
 class _RoomSelectionViewState extends State<RoomSelectionView> {
-  bool _isLoadingDialogShown = false;
+  late final RoomDialogController _dialogController;
+
+  @override
+  void initState() {
+    super.initState();
+    _dialogController = RoomDialogController();
+  }
+
+  @override
+  void dispose() {
+    _dialogController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,26 +48,27 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
       ),
       body: BlocListener<RoomSelectionLocalBloc, RoomSelectionState>(
         listener: (context, state) {
-          // Handle loading states
-          if (state is RoomCreating || state is RoomConnecting || state is RoomWaitingAnswer) {
-            _showLoadingDialog(context, state);
+          // Handle loading states with safer dialog management
+          if (state is RoomCreating || 
+              state is RoomConnecting || 
+              state is RoomWaitingAnswer) {
+            _showLoadingForState(context, state);
           } else {
-            _dismissLoadingDialog(context);
+            _dialogController.dismissLoadingDialog();
           }
 
           // Handle other states
-          if (state is RoomWaitingAnswer) {
-            // LoadingDialog already shown above, CreateRoomDialog will be handled elsewhere if needed
-          } else if (state is RoomError) {
-            showDialog(
-              context: context,
-              builder: (dialogContext) => ErrorRoomDialog(
-                message: state.message,
-                onDismiss: () {
-                  Navigator.of(dialogContext).pop();
-                  context.read<RoomSelectionLocalBloc>().add(const ClearRequested());
-                },
-              ),
+          if (state is RoomError) {
+            _dialogController.showErrorDialog(
+              context,
+              message: state.message,
+              onDismiss: () {
+                if (mounted) {
+                  context
+                      .read<RoomSelectionLocalBloc>()
+                      .add(const ClearRequested());
+                }
+              },
             );
           } else if (state is RoomConnected) {
             // Navigate to chat page with appropriate caller flag
@@ -70,23 +81,34 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.video_call, size: 80, color: Colors.teal),
+              const Icon(
+                Icons.video_call,
+                size: 80,
+                color: Colors.teal,
+              ),
               const SizedBox(height: 32),
               const Text(
                 'Welcome to GlobGram P2P',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               const Text(
                 'Create a new room or join an existing one',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
               BlocBuilder<RoomSelectionLocalBloc, RoomSelectionState>(
                 builder: (context, state) {
-                  final isLoading = state is RoomCreating || state is RoomConnecting;
+                  final isLoading = state is RoomCreating || 
+                                  state is RoomConnecting;
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -105,16 +127,7 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
                       ElevatedButton.icon(
                         onPressed: isLoading
                             ? null
-                            : () => showDialog(
-                                  context: context,
-                                  builder: (dialogContext) => JoinRoomDialog(
-                                    onJoin: (roomId) {
-                                      Navigator.of(dialogContext).pop();
-                                      context.read<RoomSelectionLocalBloc>().add(JoinRequested(roomId));
-                                    },
-                                    onCancel: () => Navigator.of(dialogContext).pop(),
-                                  ),
-                                ),
+                            : () => _showJoinDialog(context),
                         icon: const Icon(Icons.login),
                         label: const Text('Join Room'),
                         style: ElevatedButton.styleFrom(
@@ -170,7 +183,11 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
                         padding: EdgeInsets.all(16.0),
                         child: Column(
                           children: [
-                            Icon(Icons.videocam, color: Colors.blue, size: 32),
+                            Icon(
+                              Icons.videocam,
+                              color: Colors.blue,
+                              size: 32,
+                            ),
                             SizedBox(height: 8),
                             Text(
                               'Connected to Room!',
@@ -199,9 +216,23 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
     context.read<RoomSelectionLocalBloc>().add(const CreateRequested());
   }
 
-  void _showLoadingDialog(BuildContext context, RoomSelectionState state) {
-    if (_isLoadingDialogShown) return;
+  void _showJoinDialog(BuildContext context) {
+    _dialogController.showJoinDialog(
+      context,
+      onJoin: (roomId) {
+        if (mounted) {
+          context.read<RoomSelectionLocalBloc>().add(JoinRequested(roomId));
+        }
+      },
+      onCancel: () {
+        // No action needed on cancel
+      },
+    );
+  }
 
+  /// Shows appropriate loading dialog based on state
+  /// Uses dialog controller for safer context management
+  void _showLoadingForState(BuildContext context, RoomSelectionState state) {
     String message;
     if (state is RoomCreating) {
       message = 'Creating room...';
@@ -213,20 +244,6 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
       return;
     }
 
-    _isLoadingDialogShown = true;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => LoadingRoomDialog(message: message),
-    );
-  }
-
-  void _dismissLoadingDialog(BuildContext context) {
-    if (!_isLoadingDialogShown) return;
-
-    _isLoadingDialogShown = false;
-    if (Navigator.canPop(context)) {
-      Navigator.of(context).pop();
-    }
+    _dialogController.showLoadingDialog(context, message);
   }
 }
