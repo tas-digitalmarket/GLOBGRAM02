@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:logger/logger.dart';
-import '../domain/chat_message.dart';
-import '../domain/webrtc_service.dart';
-import '../../room_selection/data/room_remote_data_source_firestore.dart';
+import 'package:globgram_p2p/features/chat/domain/chat_message.dart';
+import 'package:globgram_p2p/features/chat/domain/webrtc_service.dart';
+import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source_firestore.dart';
 
 class WebRTCServiceImpl implements WebRTCService {
   static final Logger _logger = Logger();
@@ -29,10 +29,13 @@ class WebRTCServiceImpl implements WebRTCService {
   WebRTCServiceImpl(this._firestoreDataSource);
 
   // Public streams
+  @override
   Stream<ChatMessage> get messageStream => _dataMessageController.stream;
+  @override
   Stream<ConnectionState> get connectionStateStream => _connectionStateController.stream;
   Stream<String> get onError => _errorController.stream;
 
+  @override
   bool get isConnected => _connectionState == ConnectionState.connected;
   ConnectionState _connectionState = ConnectionState.disconnected;
 
@@ -66,6 +69,7 @@ class WebRTCServiceImpl implements WebRTCService {
   }
 
   /// Initialize WebRTC as caller (creates offer)
+  @override
   Future<void> initAsCaller(String roomId) async {
     try {
       _logger.i('Initializing WebRTC as caller for room: $roomId');
@@ -102,6 +106,7 @@ class WebRTCServiceImpl implements WebRTCService {
   }
 
   /// Initialize WebRTC as callee (receives offer and creates answer)
+  @override
   Future<void> initAsCallee(String roomId) async {
     try {
       _logger.i('Initializing WebRTC as callee for room: $roomId');
@@ -246,6 +251,7 @@ class WebRTCServiceImpl implements WebRTCService {
   }
 
   /// Send chat message through data channel
+  @override
   Future<void> sendMessage(String text) async {
     if (!_isInitialized) {
       throw StateError('WebRTC service not initialized');
@@ -381,6 +387,7 @@ class WebRTCServiceImpl implements WebRTCService {
   }
 
   /// Dispose of all resources
+  @override
   Future<void> dispose() async {
     try {
       _logger.i('Disposing WebRTC service');

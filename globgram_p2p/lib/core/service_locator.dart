@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source.dart';
 import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source_firestore.dart';
 import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source_local.dart';
+import 'package:globgram_p2p/features/room_selection/presentation/room_selection_local_bloc.dart';
 import 'package:globgram_p2p/features/chat/domain/webrtc_service.dart';
 import 'package:globgram_p2p/features/chat/data/webrtc_service_impl.dart';
 import 'package:globgram_p2p/features/chat/data/webrtc_service_local.dart';
@@ -24,6 +25,11 @@ Future<void> setupServiceLocator() async {
   // Firestore datasource for WebRTC signaling
   getIt.registerLazySingleton<RoomRemoteDataSourceFirestore>(
     () => RoomRemoteDataSourceFirestore(),
+  );
+
+  // Room Selection Bloc
+  getIt.registerFactory<RoomSelectionLocalBloc>(
+    () => RoomSelectionLocalBloc(localDataSource: getIt<RoomRemoteDataSourceLocal>()),
   );
 
   // WebRTC service with conditional logic

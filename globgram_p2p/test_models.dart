@@ -6,7 +6,9 @@ void main() {
   // Test RoomEntity
   final room = RoomEntity(roomId: 'ROOM123', createdAt: DateTime.now());
 
-  print('Room Entity: ${room.toJson()}');
+  // Test room properties
+  assert(room.roomId == 'ROOM123');
+  assert(room.createdAt.millisecondsSinceEpoch > 0);
 
   // Test SdpEntity
   final sdp = SdpEntity(
@@ -14,7 +16,9 @@ void main() {
     sdp: 'v=0\r\no=- 123456789 2 IN IP4 127.0.0.1...',
   );
 
-  print('SDP Entity: ${sdp.toJson()}');
+  // Test SDP Entity creation and serialization
+  assert(sdp.type == 'offer');
+  assert(sdp.sdp.isNotEmpty);
 
   // Test IceCandidateEntity
   final iceCandidate = IceCandidateEntity(
@@ -23,20 +27,23 @@ void main() {
     sdpMLineIndex: 0,
   );
 
-  print('ICE Candidate Entity: ${iceCandidate.toJson()}');
+  // Test ICE candidate properties
+  assert(iceCandidate.candidate.isNotEmpty);
+  assert(iceCandidate.sdpMid == '0');
 
   // Test JSON serialization/deserialization
   final roomJson = room.toJson();
   final roomFromJson = RoomEntity.fromJson(roomJson);
-  print('Room serialization test: ${room == roomFromJson}');
+  assert(room == roomFromJson, 'Room serialization failed');
 
   final sdpJson = sdp.toJson();
   final sdpFromJson = SdpEntity.fromJson(sdpJson);
-  print('SDP serialization test: ${sdp == sdpFromJson}');
+  assert(sdp == sdpFromJson, 'SDP serialization failed');
 
   final candidateJson = iceCandidate.toJson();
   final candidateFromJson = IceCandidateEntity.fromJson(candidateJson);
-  print(
-    'ICE Candidate serialization test: ${iceCandidate == candidateFromJson}',
+  assert(
+    iceCandidate == candidateFromJson,
+    'ICE Candidate serialization failed',
   );
 }

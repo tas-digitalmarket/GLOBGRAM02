@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
 import 'package:globgram_p2p/features/chat/domain/chat_message.dart';
 import 'package:globgram_p2p/features/chat/presentation/chat_bloc.dart';
-import 'package:globgram_p2p/core/service_locator.dart';
+import 'package:globgram_p2p/features/chat/presentation/message_bubble.dart';
 
 class ChatPage extends StatefulWidget {
   final String roomId;
@@ -50,34 +50,28 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<ChatBloc>(
-      create: (context) {
-        final chatBloc = getIt<ChatBloc>();
-        chatBloc.initializeConnection(widget.roomId, asCaller: true);
-        return chatBloc;
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          title: Text('Room: ${widget.roomId}'),
-          actions: [
-            BlocBuilder<ChatBloc, ChatState>(
-              builder: (context, state) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
-                  child: Icon(
-                    _getConnectionIcon(state),
-                    color: _getConnectionColor(state),
-                    size: 24,
-                  ),
-                );
-              },
-            ),
-          ],
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
         ),
+        title: Text('Room: ${widget.roomId}'),
+        actions: [
+          BlocBuilder<ChatBloc, ChatState>(
+            builder: (context, state) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: Icon(
+                  _getConnectionIcon(state),
+                  color: _getConnectionColor(state),
+                  size: 24,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
         body: Column(
           children: [
             Expanded(
@@ -115,7 +109,10 @@ class _ChatPageState extends State<ChatPage> {
                       itemBuilder: (context, index) {
                         final reversedIndex = state.history.length - 1 - index;
                         final message = state.history[reversedIndex];
-                        return _buildMessageBubble(message);
+                        return MessageBubble(
+                          msg: message,
+                          isMine: message.sender == ChatSender.self,
+                        );
                       },
                     );
                   }
@@ -186,45 +183,7 @@ class _ChatPageState extends State<ChatPage> {
             ),
           ],
         ),
-      ),
     );
-  }
-
-  Widget _buildMessageBubble(ChatMessage message) {
-    final bool isSelf = message.sender == ChatSender.self;
-    
-    return Align(
-      alignment: isSelf ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelf ? const Color(0xFFE1FFC7) : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(18).copyWith(
-            bottomRight: isSelf ? const Radius.circular(4) : null,
-            bottomLeft: !isSelf ? const Radius.circular(4) : null,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(message.text, style: const TextStyle(color: Colors.black87, fontSize: 16)),
-            const SizedBox(height: 4),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Text(_formatTime(message.timestamp), style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatTime(DateTime timestamp) {
-    final hour = timestamp.hour.toString().padLeft(2, '0');
-    final minute = timestamp.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
   }
 
   void _sendMessage(String text) {

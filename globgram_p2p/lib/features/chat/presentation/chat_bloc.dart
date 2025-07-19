@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:logger/logger.dart';
-import '../domain/webrtc_service.dart';
-import '../domain/chat_message.dart';
+import 'package:globgram_p2p/features/chat/domain/webrtc_service.dart';
+import 'package:globgram_p2p/features/chat/domain/chat_message.dart';
 
 // Events
 abstract class ChatEvent extends Equatable {

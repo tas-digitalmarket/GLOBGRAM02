@@ -1,5 +1,4 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:mocktail/mocktail.dart';
@@ -17,7 +16,6 @@ void main() {
   group('RoomSelectionBloc', () {
     late RoomSelectionBloc roomSelectionBloc;
     late MockRoomRemoteDataSource mockRoomDataSource;
-    late FakeFirebaseFirestore fakeFirestore;
     late MockHydratedStorage mockStorage;
 
     setUpAll(() {
@@ -32,7 +30,6 @@ void main() {
 
     setUp(() {
       mockRoomDataSource = MockRoomRemoteDataSource();
-      fakeFirestore = FakeFirebaseFirestore();
       roomSelectionBloc = RoomSelectionBloc(
         roomDataSource: mockRoomDataSource,
       );
@@ -161,44 +158,30 @@ void main() {
 
     group('Firestore simulation scenarios', () {
       blocTest<RoomSelectionBloc, RoomSelectionState>(
-        'simulates successful room creation with Firestore',
+        'simulates successful room creation',
         setUp: () async {
-          // Simulate adding a room document to Firestore
-          await fakeFirestore.collection('rooms').add({
-            'roomId': 'FIRESTORE_ROOM',
-            'createdAt': DateTime.now().millisecondsSinceEpoch,
-            'status': 'waiting',
-          });
-
           when(() => mockRoomDataSource.createRoom())
-              .thenAnswer((_) async => 'FIRESTORE_ROOM');
+              .thenAnswer((_) async => 'TEST_ROOM_ID');
         },
         build: () => roomSelectionBloc,
         act: (bloc) => bloc.add(const CreateRequested()),
         expect: () => [
           const RoomCreating(),
-          const RoomWaitingAnswer('FIRESTORE_ROOM'),
+          const RoomWaitingAnswer('TEST_ROOM_ID', isCaller: true),
         ],
       );
 
       blocTest<RoomSelectionBloc, RoomSelectionState>(
-        'simulates joining existing room in Firestore',
+        'simulates joining existing room',
         setUp: () async {
-          // Pre-populate Firestore with existing room
-          await fakeFirestore.collection('rooms').doc('EXISTING_ROOM').set({
-            'roomId': 'EXISTING_ROOM',
-            'createdAt': DateTime.now().millisecondsSinceEpoch,
-            'status': 'waiting',
-          });
-
           when(() => mockRoomDataSource.joinRoom('EXISTING_ROOM'))
               .thenAnswer((_) async {});
         },
         build: () => roomSelectionBloc,
         act: (bloc) => bloc.add(const JoinRequested('EXISTING_ROOM')),
         expect: () => [
-          const RoomConnecting('EXISTING_ROOM'),
-          const RoomConnected('EXISTING_ROOM'),
+          const RoomConnecting('EXISTING_ROOM', isCaller: false),
+          const RoomConnected('EXISTING_ROOM', isCaller: false),
         ],
       );
 

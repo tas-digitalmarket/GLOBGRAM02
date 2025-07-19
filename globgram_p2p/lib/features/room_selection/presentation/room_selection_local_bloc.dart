@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
-import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source.dart';
+import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source_local.dart';
 
 // Events
 abstract class RoomSelectionEvent extends Equatable {
@@ -84,12 +84,12 @@ class RoomError extends RoomSelectionState {
 }
 
 // Bloc
-class RoomSelectionBloc extends Bloc<RoomSelectionEvent, RoomSelectionState> {
-  final RoomRemoteDataSource _roomDataSource;
+class RoomSelectionLocalBloc extends Bloc<RoomSelectionEvent, RoomSelectionState> {
+  final RoomRemoteDataSourceLocal _localDataSource;
   final Logger _logger = Logger();
 
-  RoomSelectionBloc({required RoomRemoteDataSource roomDataSource})
-    : _roomDataSource = roomDataSource,
+  RoomSelectionLocalBloc({required RoomRemoteDataSourceLocal localDataSource})
+    : _localDataSource = localDataSource,
       super(const RoomInitial()) {
     on<CreateRequested>(_onCreateRequested);
     on<JoinRequested>(_onJoinRequested);
@@ -101,15 +101,15 @@ class RoomSelectionBloc extends Bloc<RoomSelectionEvent, RoomSelectionState> {
     Emitter<RoomSelectionState> emit,
   ) async {
     try {
-      _logger.i('Creating new room as caller...');
+      _logger.i('Creating new room as caller (Local)...');
       emit(const RoomCreating());
 
-      final roomId = await _roomDataSource.createRoom();
-      _logger.i('Room created successfully: $roomId');
+      final roomId = await _localDataSource.createRoom();
+      _logger.i('Room created successfully (Local): $roomId');
 
       emit(RoomWaitingAnswer(roomId, isCaller: true));
     } catch (error) {
-      _logger.e('Failed to create room: $error');
+      _logger.e('Failed to create room (Local): $error');
       emit(RoomError('Failed to create room: ${error.toString()}'));
     }
   }
@@ -119,15 +119,19 @@ class RoomSelectionBloc extends Bloc<RoomSelectionEvent, RoomSelectionState> {
     Emitter<RoomSelectionState> emit,
   ) async {
     try {
-      _logger.i('Joining room as callee: ${event.roomId}');
+      _logger.i('Joining room as callee (Local): ${event.roomId}');
       emit(RoomConnecting(event.roomId, isCaller: false));
 
-      await _roomDataSource.joinRoom(event.roomId);
-      _logger.i('Successfully joined room: ${event.roomId}');
+      // Check if room exists
+      final roomData = await _localDataSource.getRoomData(event.roomId);
+      if (roomData == null) {
+        throw Exception('Room not found: ${event.roomId}');
+      }
 
+      _logger.i('Successfully joined room (Local): ${event.roomId}');
       emit(RoomConnected(event.roomId, isCaller: false));
     } catch (error) {
-      _logger.e('Failed to join room ${event.roomId}: $error');
+      _logger.e('Failed to join room (Local) ${event.roomId}: $error');
       emit(RoomError('Failed to join room: ${error.toString()}'));
     }
   }
@@ -136,7 +140,7 @@ class RoomSelectionBloc extends Bloc<RoomSelectionEvent, RoomSelectionState> {
     ClearRequested event,
     Emitter<RoomSelectionState> emit,
   ) async {
-    _logger.i('Clearing room selection state');
+    _logger.i('Clearing room selection state (Local)');
     emit(const RoomInitial());
   }
 }

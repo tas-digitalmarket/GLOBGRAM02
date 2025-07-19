@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:logger/logger.dart';
-import '../domain/chat_message.dart';
-import '../domain/webrtc_service.dart';
+import 'package:globgram_p2p/features/chat/domain/chat_message.dart';
+import 'package:globgram_p2p/features/chat/domain/webrtc_service.dart';
 
 class WebRTCServiceMock implements WebRTCService {
   static final Logger _logger = Logger();
@@ -14,16 +14,20 @@ class WebRTCServiceMock implements WebRTCService {
   final StreamController<ConnectionState> _connectionStateController =
       StreamController<ConnectionState>.broadcast();
 
+  @override
   Stream<ChatMessage> get messageStream => _messageController.stream;
+  @override
   Stream<ConnectionState> get connectionStateStream =>
       _connectionStateController.stream;
 
+  @override
   bool get isConnected => _connectionState == ConnectionState.connected;
   ConnectionState _connectionState = ConnectionState.disconnected;
 
   bool _isInitialized = false;
 
   /// Initialize WebRTC as the caller (creates offer)
+  @override
   Future<void> initAsCaller(String roomId) async {
     try {
       _logger.i('Initializing WebRTC as caller for room: $roomId (MOCK MODE)');
@@ -53,6 +57,7 @@ class WebRTCServiceMock implements WebRTCService {
   }
 
   /// Initialize WebRTC as the callee (receives offer)
+  @override
   Future<void> initAsCallee(String roomId) async {
     try {
       _logger.i('Initializing WebRTC as callee for room: $roomId (MOCK MODE)');
@@ -85,6 +90,7 @@ class WebRTCServiceMock implements WebRTCService {
   }
 
   /// Send a text message through the data channel
+  @override
   Future<void> sendMessage(String text) async {
     if (!_isInitialized) {
       throw StateError('WebRTC service not initialized');
@@ -168,6 +174,7 @@ class WebRTCServiceMock implements WebRTCService {
   }
 
   /// Dispose of all resources
+  @override
   Future<void> dispose() async {
     try {
       _logger.i('Disposing WebRTC service (MOCK MODE)');

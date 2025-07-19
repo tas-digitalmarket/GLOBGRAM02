@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:math';
-import '../domain/room_entity.dart';
+import 'package:globgram_p2p/features/room_selection/domain/room_entity.dart';
 
 abstract class RoomRemoteDataSource {
   Future<String> createRoom();

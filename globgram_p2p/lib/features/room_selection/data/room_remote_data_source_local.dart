@@ -128,7 +128,11 @@ class RoomRemoteDataSourceLocal {
 
   /// Create a new room
   Future<String> createRoom() async {
-    final roomId = 'room_${DateTime.now().millisecondsSinceEpoch}';
+    // Generate shorter, more user-friendly room ID
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final shortId = timestamp.toString().substring(timestamp.toString().length - 6);
+    final roomId = 'R$shortId';
+    
     _rooms[roomId] = {
       'createdAt': DateTime.now().toIso8601String(),
       'status': 'waiting',
@@ -141,7 +145,9 @@ class RoomRemoteDataSourceLocal {
   Future<List<Map<String, dynamic>>> getAvailableRooms() async {
     final availableRooms = <Map<String, dynamic>>[];
     
-    _rooms.forEach((roomId, roomData) {
+    for (final entry in _rooms.entries) {
+      final roomId = entry.key;
+      final roomData = entry.value;
       if (roomData['offer'] != null && roomData['answer'] == null) {
         availableRooms.add({
           'id': roomId,
@@ -149,7 +155,7 @@ class RoomRemoteDataSourceLocal {
           'status': 'waiting',
         });
       }
-    });
+    }
     
     _logger.i('Available rooms: ${availableRooms.length}');
     return availableRooms;
@@ -158,7 +164,9 @@ class RoomRemoteDataSourceLocal {
   /// Clear all rooms (for testing)
   static void clearAllRooms() {
     _rooms.clear();
-    _iceCandidateControllers.values.forEach((controller) => controller.close());
+    for (var controller in _iceCandidateControllers.values) {
+      controller.close();
+    }
     _iceCandidateControllers.clear();
     Logger().i('All rooms cleared');
   }
