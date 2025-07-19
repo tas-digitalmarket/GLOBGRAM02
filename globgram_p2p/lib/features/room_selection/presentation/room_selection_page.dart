@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:globgram_p2p/core/service_locator.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/room_selection_local_bloc.dart';
-import 'package:globgram_p2p/features/room_selection/presentation/dialogs/create_room_dialog.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/dialogs/join_room_dialog.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/dialogs/error_room_dialog.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/dialogs/loading_room_dialog.dart';
@@ -40,7 +39,7 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
       body: BlocListener<RoomSelectionLocalBloc, RoomSelectionState>(
         listener: (context, state) {
           // Handle loading states
-          if (state is RoomCreating || state is RoomConnecting) {
+          if (state is RoomCreating || state is RoomConnecting || state is RoomWaitingAnswer) {
             _showLoadingDialog(context, state);
           } else {
             _dismissLoadingDialog(context);
@@ -48,21 +47,7 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
 
           // Handle other states
           if (state is RoomWaitingAnswer) {
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (dialogContext) => CreateRoomDialog(
-                roomId: state.roomId,
-                onOk: () {
-                  Navigator.of(dialogContext).pop();
-                  context.read<RoomSelectionLocalBloc>().add(const ClearRequested());
-                },
-                onStartChat: () {
-                  Navigator.of(dialogContext).pop();
-                  context.go('/chat/${state.roomId}?asCaller=${state.isCaller}');
-                },
-              ),
-            );
+            // LoadingDialog already shown above, CreateRoomDialog will be handled elsewhere if needed
           } else if (state is RoomError) {
             showDialog(
               context: context,
@@ -222,6 +207,8 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
       message = 'Creating room...';
     } else if (state is RoomConnecting) {
       message = 'Joining room...';
+    } else if (state is RoomWaitingAnswer) {
+      message = 'Waiting for participant...';
     } else {
       return;
     }
