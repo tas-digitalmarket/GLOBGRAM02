@@ -134,6 +134,72 @@ service cloud.firestore {
 - **Freezed**: Code generation for immutable classes
 - **Logger**: Structured logging
 
+## Firebase Setup
+
+This application requires Firebase configuration for Firestore-based signaling. Follow these steps to set up Firebase:
+
+### Prerequisites
+1. Install Flutter CLI (>=3.8.1)
+2. Install Firebase CLI: `npm install -g firebase-tools`
+3. Install FlutterFire CLI: `dart pub global activate flutterfire_cli`
+
+### Configuration Steps
+
+1. **Create Firebase Project**
+   ```bash
+   firebase login
+   firebase projects:create globgram-p2p-project
+   ```
+
+2. **Enable Required Services**
+   - Go to [Firebase Console](https://console.firebase.google.com)
+   - Navigate to your project
+   - Enable **Firestore Database** in production mode
+   - Enable **Authentication** (optional, for future use)
+
+3. **Configure Flutter Project**
+   ```bash
+   # In the project root directory
+   flutterfire configure
+   ```
+   - Select your Firebase project
+   - Choose platforms: Web, Android, iOS (as needed)
+   - This will generate proper `firebase_options.dart`
+
+4. **Firestore Security Rules**
+   ```javascript
+   // Firestore rules for development (make more restrictive for production)
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /rooms/{roomId} {
+         allow read, write: if true; // TODO: Add proper authentication
+       }
+       match /rooms/{roomId}/iceCandidates/{document} {
+         allow read, write: if true; // TODO: Add proper authentication  
+       }
+     }
+   }
+   ```
+
+5. **Deploy Firestore Rules**
+   ```bash
+   firebase deploy --only firestore:rules
+   ```
+
+### Development vs Production
+
+- **Development**: Uses placeholder values in `firebase_options.dart`
+- **Production**: Replace all TODO placeholders with actual Firebase project values
+
+### Troubleshooting
+
+- **Firebase initialization fails**: Check that `firebase_options.dart` has correct project configuration
+- **Firestore permission denied**: Verify Firestore security rules allow read/write access
+- **FlutterFire CLI not found**: Run `dart pub global activate flutterfire_cli`
+
+For more information, see [FlutterFire Documentation](https://firebase.flutter.dev/docs/overview/).
+
 ## Contributing
 
 1. Fork the repository

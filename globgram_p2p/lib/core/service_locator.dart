@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source.dart';
 import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source_firestore.dart';
 import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source_local.dart';
+import 'package:globgram_p2p/features/room_selection/data/datasources/signaling_data_source.dart';
+import 'package:globgram_p2p/features/room_selection/data/datasources/in_memory_signaling_data_source.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/room_selection_local_bloc.dart';
 import 'package:globgram_p2p/features/chat/domain/webrtc_service.dart';
 import 'package:globgram_p2p/features/chat/data/webrtc_service_impl.dart';
@@ -26,6 +28,12 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<RoomRemoteDataSourceFirestore>(
     () => RoomRemoteDataSourceFirestore(),
   );
+
+  // Signaling data sources for Phase 2
+  getIt.registerLazySingleton<SignalingDataSource>(() {
+    // Use in-memory for all environments (for now)
+    return InMemorySignalingDataSource();
+  });
 
   // Room Selection Bloc
   getIt.registerFactory<RoomSelectionLocalBloc>(
