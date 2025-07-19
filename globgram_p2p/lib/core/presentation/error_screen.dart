@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ErrorScreen extends StatelessWidget {
-  final String error;
+  final Object error;
   final VoidCallback onRetry;
 
   const ErrorScreen({
@@ -13,13 +13,19 @@ class ErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Initialization Error'),
+        backgroundColor: Colors.red.shade600,
+        foregroundColor: Colors.white,
+      ),
       backgroundColor: Colors.red.shade50,
-      body: Center(
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const SizedBox(height: 32),
               Icon(
                 Icons.error_outline,
                 size: 80,
@@ -55,10 +61,11 @@ class ErrorScreen extends StatelessWidget {
                   constraints: const BoxConstraints(maxHeight: 200),
                   child: SingleChildScrollView(
                     child: SelectableText(
-                      error,
+                      error.toString(),
                       style: const TextStyle(
                         fontSize: 12,
                         fontFamily: 'monospace',
+                        color: Colors.grey,
                       ),
                     ),
                   ),
@@ -72,7 +79,7 @@ class ErrorScreen extends StatelessWidget {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 ),
-                child: const Text('Retry Initialization'),
+                child: const Text('Retry'),
               ),
             ],
           ),

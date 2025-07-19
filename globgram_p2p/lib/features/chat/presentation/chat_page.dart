@@ -7,8 +7,9 @@ import 'package:globgram_p2p/features/chat/presentation/message_bubble.dart';
 
 class ChatPage extends StatefulWidget {
   final String roomId;
+  final bool asCaller;
 
-  const ChatPage({super.key, required this.roomId});
+  const ChatPage({super.key, required this.roomId, required this.asCaller});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -18,6 +19,12 @@ class _ChatPageState extends State<ChatPage> {
   static final Logger _logger = Logger();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    debugPrint("ChatPage asCaller=${widget.asCaller}");
+  }
 
   @override
   void dispose() {
@@ -56,7 +63,16 @@ class _ChatPageState extends State<ChatPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text('Room: ${widget.roomId}'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Room: ${widget.roomId}'),
+            Text(
+              widget.asCaller ? 'Caller' : 'Joiner',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+            ),
+          ],
+        ),
         actions: [
           BlocBuilder<ChatBloc, ChatState>(
             builder: (context, state) {

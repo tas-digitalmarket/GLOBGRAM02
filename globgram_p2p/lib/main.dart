@@ -11,6 +11,10 @@ import 'package:globgram_p2p/core/presentation/error_screen.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
+  await runAppWithFirebase();
+}
+
+Future<void> runAppWithFirebase() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -29,7 +33,7 @@ Future<void> main() async {
       debugPrint('Stack trace: $stackTrace');
       
       // Show error screen for Firebase failure
-      runApp(_buildFirebaseErrorApp(firebaseError.toString()));
+      runApp(_buildErrorApp('Firebase initialization failed', firebaseError));
       return;
     }
 
@@ -67,45 +71,21 @@ Future<void> main() async {
     debugPrint('Stack trace: $stackTrace');
     
     // Run fallback error app
-    runApp(_buildErrorApp(e.toString()));
+    runApp(_buildErrorApp('Application initialization failed', e));
   }
 }
 
-/// Build Firebase error app when Firebase initialization fails
-Widget _buildFirebaseErrorApp(String error) {
-  return MaterialApp(
-    title: 'GlobGram P2P - Firebase Error',
-    home: ErrorScreen(
-      error: 'Firebase initialization failed:\n\n$error',
-      onRetry: () async {
-        // Trigger retry by calling main again
-        await _retryInitialization();
-      },
-    ),
-  );
-}
-
-/// Build general error app when other initialization fails
-Widget _buildErrorApp(String error) {
+/// Build error app for any initialization failure
+Widget _buildErrorApp(String context, Object error) {
   return MaterialApp(
     title: 'GlobGram P2P - Error',
     home: ErrorScreen(
-      error: 'Application initialization failed:\n\n$error',
+      error: '$context:\n\n$error',
       onRetry: () async {
-        // Trigger retry by calling main again
-        await _retryInitialization();
+        await runAppWithFirebase();
       },
     ),
   );
-}
-
-/// Retry initialization by calling main again
-Future<void> _retryInitialization() async {
-  try {
-    main();
-  } catch (e) {
-    debugPrint('[❌] Retry failed: $e');
-  }
 }
 
 class MyApp extends StatelessWidget {

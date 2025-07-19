@@ -6,6 +6,7 @@ import 'package:globgram_p2p/features/room_selection/presentation/room_selection
 import 'package:globgram_p2p/features/room_selection/presentation/dialogs/create_room_dialog.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/dialogs/join_room_dialog.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/dialogs/error_room_dialog.dart';
+import 'package:globgram_p2p/features/room_selection/presentation/dialogs/loading_room_dialog.dart';
 
 class RoomSelectionPage extends StatelessWidget {
   const RoomSelectionPage({super.key});
@@ -19,8 +20,15 @@ class RoomSelectionPage extends StatelessWidget {
   }
 }
 
-class RoomSelectionView extends StatelessWidget {
+class RoomSelectionView extends StatefulWidget {
   const RoomSelectionView({super.key});
+
+  @override
+  State<RoomSelectionView> createState() => _RoomSelectionViewState();
+}
+
+class _RoomSelectionViewState extends State<RoomSelectionView> {
+  bool _isLoadingDialogShown = false;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +39,14 @@ class RoomSelectionView extends StatelessWidget {
       ),
       body: BlocListener<RoomSelectionLocalBloc, RoomSelectionState>(
         listener: (context, state) {
+          // Handle loading states
+          if (state is RoomCreating || state is RoomConnecting) {
+            _showLoadingDialog(context, state);
+          } else {
+            _dismissLoadingDialog(context);
+          }
+
+          // Handle other states
           if (state is RoomWaitingAnswer) {
             showDialog(
               context: context,
@@ -85,31 +101,15 @@ class RoomSelectionView extends StatelessWidget {
               const SizedBox(height: 48),
               BlocBuilder<RoomSelectionLocalBloc, RoomSelectionState>(
                 builder: (context, state) {
-                  final isLoading =
-                      state is RoomCreating || state is RoomConnecting;
+                  final isLoading = state is RoomCreating || state is RoomConnecting;
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       ElevatedButton.icon(
-                        onPressed: isLoading
-                            ? null
-                            : () => _createRoom(context),
-                        icon: isLoading && state is RoomCreating
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.add),
-                        label: Text(
-                          isLoading && state is RoomCreating
-                              ? 'Creating Room...'
-                              : 'Create Room',
-                        ),
+                        onPressed: isLoading ? null : () => _createRoom(context),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Create Room'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           backgroundColor: Colors.teal,
@@ -130,21 +130,8 @@ class RoomSelectionView extends StatelessWidget {
                                     onCancel: () => Navigator.of(dialogContext).pop(),
                                   ),
                                 ),
-                        icon: isLoading && state is RoomConnecting
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.login),
-                        label: Text(
-                          isLoading && state is RoomConnecting
-                              ? 'Joining Room...'
-                              : 'Join Room',
-                        ),
+                        icon: const Icon(Icons.login),
+                        label: const Text('Join Room'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           backgroundColor: Colors.teal.shade300,
@@ -225,5 +212,34 @@ class RoomSelectionView extends StatelessWidget {
 
   void _createRoom(BuildContext context) {
     context.read<RoomSelectionLocalBloc>().add(const CreateRequested());
+  }
+
+  void _showLoadingDialog(BuildContext context, RoomSelectionState state) {
+    if (_isLoadingDialogShown) return;
+
+    String message;
+    if (state is RoomCreating) {
+      message = 'Creating room...';
+    } else if (state is RoomConnecting) {
+      message = 'Joining room...';
+    } else {
+      return;
+    }
+
+    _isLoadingDialogShown = true;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => LoadingRoomDialog(message: message),
+    );
+  }
+
+  void _dismissLoadingDialog(BuildContext context) {
+    if (!_isLoadingDialogShown) return;
+
+    _isLoadingDialogShown = false;
+    if (Navigator.canPop(context)) {
+      Navigator.of(context).pop();
+    }
   }
 }

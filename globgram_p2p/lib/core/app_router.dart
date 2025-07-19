@@ -33,7 +33,7 @@ final appRouter = GoRouter(
             chatBloc.initializeConnection(roomId, asCaller: asCaller);
             return chatBloc;
           },
-          child: ChatPage(roomId: roomId),
+          child: ChatPage(roomId: roomId, asCaller: asCaller),
         );
       },
     ),
