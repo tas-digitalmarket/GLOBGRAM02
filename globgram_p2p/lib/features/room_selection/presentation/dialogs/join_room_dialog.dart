@@ -45,7 +45,10 @@ class _JoinRoomDialogState extends State<JoinRoomDialog> {
         ],
       ),
       actions: [
-        TextButton(onPressed: widget.onCancel, child: const Text('Cancel')),
+        TextButton(
+          onPressed: widget.onCancel,
+          child: const Text('Cancel'),
+        ),
         ElevatedButton(
           onPressed: () {
             final roomId = _roomIdController.text.trim();

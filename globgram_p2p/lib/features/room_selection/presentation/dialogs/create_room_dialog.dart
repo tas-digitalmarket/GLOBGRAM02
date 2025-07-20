@@ -74,7 +74,10 @@ class CreateRoomDialog extends StatelessWidget {
         ],
       ),
       actions: [
-        TextButton(onPressed: onOk, child: const Text('OK')),
+        TextButton(
+          onPressed: onOk,
+          child: const Text('OK'),
+        ),
         if (onStartChat != null)
           ElevatedButton(
             onPressed: onStartChat,

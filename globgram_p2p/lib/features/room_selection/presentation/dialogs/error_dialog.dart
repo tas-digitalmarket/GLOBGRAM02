@@ -17,7 +17,12 @@ class ErrorDialog extends StatelessWidget {
         ],
       ),
       content: Text(message),
-      actions: [ElevatedButton(onPressed: onOk, child: const Text('OK'))],
+      actions: [
+        ElevatedButton(
+          onPressed: onOk,
+          child: const Text('OK'),
+        ),
+      ],
     );
   }
 }

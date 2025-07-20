@@ -23,7 +23,12 @@ class ErrorRoomDialog extends StatelessWidget {
         ],
       ),
       content: Text(message),
-      actions: [TextButton(onPressed: onDismiss, child: const Text('OK'))],
+      actions: [
+        TextButton(
+          onPressed: onDismiss,
+          child: const Text('OK'),
+        ),
+      ],
     );
   }
 }
