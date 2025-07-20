@@ -48,9 +48,12 @@ class DefaultFirebaseOptions {
     appId: 'TODO-replace-with-actual-web-app-id',
     messagingSenderId: 'TODO-replace-with-actual-sender-id',
     projectId: 'globgram-p2p-project', // TODO: Replace with actual project ID
-    authDomain: 'globgram-p2p-project.firebaseapp.com', // TODO: Replace with actual domain
-    storageBucket: 'globgram-p2p-project.appspot.com', // TODO: Replace with actual bucket
-    measurementId: 'TODO-replace-with-actual-measurement-id', // Optional for Analytics
+    authDomain:
+        'globgram-p2p-project.firebaseapp.com', // TODO: Replace with actual domain
+    storageBucket:
+        'globgram-p2p-project.appspot.com', // TODO: Replace with actual bucket
+    measurementId:
+        'TODO-replace-with-actual-measurement-id', // Optional for Analytics
   );
 
   // TODO: Replace with actual Firebase Android configuration
@@ -59,7 +62,8 @@ class DefaultFirebaseOptions {
     appId: 'TODO-replace-with-actual-android-app-id',
     messagingSenderId: 'TODO-replace-with-actual-sender-id',
     projectId: 'globgram-p2p-project', // TODO: Replace with actual project ID
-    storageBucket: 'globgram-p2p-project.appspot.com', // TODO: Replace with actual bucket
+    storageBucket:
+        'globgram-p2p-project.appspot.com', // TODO: Replace with actual bucket
   );
 
   // TODO: Replace with actual Firebase iOS configuration
@@ -68,8 +72,10 @@ class DefaultFirebaseOptions {
     appId: 'TODO-replace-with-actual-ios-app-id',
     messagingSenderId: 'TODO-replace-with-actual-sender-id',
     projectId: 'globgram-p2p-project', // TODO: Replace with actual project ID
-    storageBucket: 'globgram-p2p-project.appspot.com', // TODO: Replace with actual bucket
-    iosBundleId: 'com.example.globgramP2p', // TODO: Replace with actual bundle ID
+    storageBucket:
+        'globgram-p2p-project.appspot.com', // TODO: Replace with actual bucket
+    iosBundleId:
+        'com.example.globgramP2p', // TODO: Replace with actual bundle ID
   );
 
   // TODO: Replace with actual Firebase macOS configuration
@@ -78,8 +84,10 @@ class DefaultFirebaseOptions {
     appId: 'TODO-replace-with-actual-macos-app-id',
     messagingSenderId: 'TODO-replace-with-actual-sender-id',
     projectId: 'globgram-p2p-project', // TODO: Replace with actual project ID
-    storageBucket: 'globgram-p2p-project.appspot.com', // TODO: Replace with actual bucket
-    iosBundleId: 'com.example.globgramP2p', // TODO: Replace with actual bundle ID
+    storageBucket:
+        'globgram-p2p-project.appspot.com', // TODO: Replace with actual bucket
+    iosBundleId:
+        'com.example.globgramP2p', // TODO: Replace with actual bundle ID
   );
 
   // TODO: Replace with actual Firebase Windows configuration
@@ -88,8 +96,11 @@ class DefaultFirebaseOptions {
     appId: 'TODO-replace-with-actual-windows-app-id',
     messagingSenderId: 'TODO-replace-with-actual-sender-id',
     projectId: 'globgram-p2p-project', // TODO: Replace with actual project ID
-    authDomain: 'globgram-p2p-project.firebaseapp.com', // TODO: Replace with actual domain
-    storageBucket: 'globgram-p2p-project.appspot.com', // TODO: Replace with actual bucket
-    measurementId: 'TODO-replace-with-actual-measurement-id', // Optional for Analytics
+    authDomain:
+        'globgram-p2p-project.firebaseapp.com', // TODO: Replace with actual domain
+    storageBucket:
+        'globgram-p2p-project.appspot.com', // TODO: Replace with actual bucket
+    measurementId:
+        'TODO-replace-with-actual-measurement-id', // Optional for Analytics
   );
 }

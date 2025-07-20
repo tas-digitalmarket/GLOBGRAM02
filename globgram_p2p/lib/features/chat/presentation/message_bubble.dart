@@ -5,18 +5,16 @@ class MessageBubble extends StatelessWidget {
   final ChatMessage msg;
   final bool isMine;
 
-  const MessageBubble({
-    super.key,
-    required this.msg,
-    required this.isMine,
-  });
+  const MessageBubble({super.key, required this.msg, required this.isMine});
 
   @override
   Widget build(BuildContext context) {
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: isMine ? const Color(0xFFE1FFC7) : Colors.grey.shade200,
@@ -29,11 +27,17 @@ class MessageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(msg.text, style: const TextStyle(color: Colors.black87, fontSize: 16)),
+            Text(
+              msg.text,
+              style: const TextStyle(color: Colors.black87, fontSize: 16),
+            ),
             const SizedBox(height: 4),
             Align(
               alignment: Alignment.bottomRight,
-              child: Text(_formatTime(msg.timestamp), style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+              child: Text(
+                _formatTime(msg.timestamp),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+              ),
             ),
           ],
         ),

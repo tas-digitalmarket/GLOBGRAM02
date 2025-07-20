@@ -84,7 +84,8 @@ class RoomError extends RoomSelectionState {
 }
 
 // Bloc
-class RoomSelectionLocalBloc extends Bloc<RoomSelectionEvent, RoomSelectionState> {
+class RoomSelectionLocalBloc
+    extends Bloc<RoomSelectionEvent, RoomSelectionState> {
   final RoomRemoteDataSourceLocal _localDataSource;
   final Logger _logger = Logger();
 

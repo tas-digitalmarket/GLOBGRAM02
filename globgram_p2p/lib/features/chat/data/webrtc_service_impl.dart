@@ -32,7 +32,8 @@ class WebRTCServiceImpl implements WebRTCService {
   @override
   Stream<ChatMessage> get messageStream => _dataMessageController.stream;
   @override
-  Stream<ConnectionState> get connectionStateStream => _connectionStateController.stream;
+  Stream<ConnectionState> get connectionStateStream =>
+      _connectionStateController.stream;
   Stream<String> get onError => _errorController.stream;
 
   @override
@@ -59,7 +60,7 @@ class WebRTCServiceImpl implements WebRTCService {
       // Create peer connection - this should work with the flutter_webrtc package
       _peerConnection = await createPeerConnection(configuration);
       _setupPeerConnectionListeners();
-      
+
       _logger.i('Peer connection created successfully');
     } catch (e) {
       _logger.e('Failed to create peer connection: $e');
@@ -73,29 +74,29 @@ class WebRTCServiceImpl implements WebRTCService {
   Future<void> initAsCaller(String roomId) async {
     try {
       _logger.i('Initializing WebRTC as caller for room: $roomId');
-      
+
       _currentRoomId = roomId;
       _isCaller = true;
-      
+
       await _createPeerConnection();
       await _createDataChannel();
-      
+
       // Create and set local offer
       final offer = await _peerConnection!.createOffer();
       await _peerConnection!.setLocalDescription(offer);
-      
+
       // Store offer in Firestore
       await _firestoreDataSource.setOffer(roomId, offer);
-      
+
       // Listen for ICE candidates from callee
       _listenToRemoteIceCandidates('callee');
-      
+
       // Listen for answer from callee
       _listenForAnswer(roomId);
-      
+
       _isInitialized = true;
       _updateConnectionState(ConnectionState.connecting);
-      
+
       _logger.i('WebRTC caller initialization completed');
     } catch (e) {
       _logger.e('Failed to initialize as caller: $e');
@@ -110,44 +111,44 @@ class WebRTCServiceImpl implements WebRTCService {
   Future<void> initAsCallee(String roomId) async {
     try {
       _logger.i('Initializing WebRTC as callee for room: $roomId');
-      
+
       _currentRoomId = roomId;
       _isCaller = false;
-      
+
       await _createPeerConnection();
-      
+
       // Set up data channel listener for incoming channels
       _peerConnection!.onDataChannel = (channel) {
         _dataChannel = channel;
         _setupDataChannelListeners();
         _logger.i('Data channel received from caller');
       };
-      
+
       // Get offer from Firestore
       final roomData = await _firestoreDataSource.getRoomData(roomId);
       if (roomData == null || roomData['offer'] == null) {
         throw Exception('No offer found for room: $roomId');
       }
-      
+
       final offerData = roomData['offer'] as Map<String, dynamic>;
       final offer = RTCSessionDescription(offerData['sdp'], offerData['type']);
-      
+
       // Set remote description (offer)
       await _peerConnection!.setRemoteDescription(offer);
-      
+
       // Create and set local answer
       final answer = await _peerConnection!.createAnswer();
       await _peerConnection!.setLocalDescription(answer);
-      
+
       // Store answer in Firestore
       await _firestoreDataSource.setAnswer(roomId, answer);
-      
+
       // Listen for ICE candidates from caller
       _listenToRemoteIceCandidates('caller');
-      
+
       _isInitialized = true;
       _updateConnectionState(ConnectionState.connecting);
-      
+
       _logger.i('WebRTC callee initialization completed');
     } catch (e) {
       _logger.e('Failed to initialize as callee: $e');
@@ -168,7 +169,7 @@ class WebRTCServiceImpl implements WebRTCService {
         'chat',
         dataChannelDict,
       );
-      
+
       _setupDataChannelListeners();
       _logger.i('Data channel "chat" created');
     } catch (e) {
@@ -288,7 +289,11 @@ class WebRTCServiceImpl implements WebRTCService {
 
     try {
       final type = _isCaller ? 'caller' : 'callee';
-      await _firestoreDataSource.addIceCandidate(_currentRoomId!, type, candidate);
+      await _firestoreDataSource.addIceCandidate(
+        _currentRoomId!,
+        type,
+        candidate,
+      );
       _logger.d('ICE candidate sent to Firestore');
     } catch (e) {
       _logger.e('Failed to send ICE candidate: $e');
@@ -303,19 +308,19 @@ class WebRTCServiceImpl implements WebRTCService {
     _iceCandidatesSubscription = _firestoreDataSource
         .listenIceCandidates(_currentRoomId!, remoteType)
         .listen(
-      (candidate) async {
-        try {
-          await _peerConnection!.addCandidate(candidate);
-          _logger.d('Remote ICE candidate added');
-        } catch (e) {
-          _logger.e('Failed to add remote ICE candidate: $e');
-        }
-      },
-      onError: (e) {
-        _logger.e('Error listening to ICE candidates: $e');
-        _errorController.add('Error listening to ICE candidates: $e');
-      },
-    );
+          (candidate) async {
+            try {
+              await _peerConnection!.addCandidate(candidate);
+              _logger.d('Remote ICE candidate added');
+            } catch (e) {
+              _logger.e('Failed to add remote ICE candidate: $e');
+            }
+          },
+          onError: (e) {
+            _logger.e('Error listening to ICE candidates: $e');
+            _errorController.add('Error listening to ICE candidates: $e');
+          },
+        );
   }
 
   /// Listen for answer from callee (caller only)
@@ -327,14 +332,18 @@ class WebRTCServiceImpl implements WebRTCService {
         final roomData = await _firestoreDataSource.getRoomData(roomId);
         if (roomData != null && roomData['answer'] != null) {
           final answerData = roomData['answer'] as Map<String, dynamic>;
-          final answer = RTCSessionDescription(answerData['sdp'], answerData['type']);
+          final answer = RTCSessionDescription(
+            answerData['sdp'],
+            answerData['type'],
+          );
           await _peerConnection!.setRemoteDescription(answer);
           _logger.i('Answer received and set as remote description');
           timer.cancel();
         }
       } catch (e) {
         _logger.e('Error checking for answer: $e');
-        if (timer.tick > 30) { // Stop after 60 seconds
+        if (timer.tick > 30) {
+          // Stop after 60 seconds
           timer.cancel();
           _errorController.add('Timeout waiting for answer');
         }

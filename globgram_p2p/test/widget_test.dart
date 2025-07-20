@@ -14,7 +14,7 @@ void main() {
   testWidgets('GlobGram app smoke test', (WidgetTester tester) async {
     // Initialize EasyLocalization for testing
     await EasyLocalization.ensureInitialized();
-    
+
     // Build our app and trigger a frame.
     await tester.pumpWidget(
       EasyLocalization(
@@ -24,7 +24,7 @@ void main() {
         child: const MyApp(),
       ),
     );
-    
+
     // Let the app settle
     await tester.pumpAndSettle();
 

@@ -32,7 +32,8 @@ class WebRTCServiceLocal implements WebRTCService {
   @override
   Stream<ChatMessage> get messageStream => _dataMessageController.stream;
   @override
-  Stream<ConnectionState> get connectionStateStream => _connectionStateController.stream;
+  Stream<ConnectionState> get connectionStateStream =>
+      _connectionStateController.stream;
 
   @override
   bool get isConnected => _connectionState == ConnectionState.connected;
@@ -58,7 +59,7 @@ class WebRTCServiceLocal implements WebRTCService {
       // Create peer connection - this should work with the flutter_webrtc package
       _peerConnection = await createPeerConnection(configuration);
       _setupPeerConnectionListeners();
-      
+
       _logger.i('Peer connection created successfully (Local)');
     } catch (e) {
       _logger.e('Failed to create peer connection: $e');
@@ -72,29 +73,29 @@ class WebRTCServiceLocal implements WebRTCService {
   Future<void> initAsCaller(String roomId) async {
     try {
       _logger.i('Initializing WebRTC as caller for room: $roomId (Local)');
-      
+
       _currentRoomId = roomId;
       _isCaller = true;
-      
+
       await _createPeerConnection();
       await _createDataChannel();
-      
+
       // Create and set local offer
       final offer = await _peerConnection!.createOffer();
       await _peerConnection!.setLocalDescription(offer);
-      
+
       // Store offer in local storage
       await _localDataSource.setOffer(roomId, offer);
-      
+
       // Listen for ICE candidates from callee
       _listenToRemoteIceCandidates('callee');
-      
+
       // Listen for answer from callee
       _listenForAnswer(roomId);
-      
+
       _isInitialized = true;
       _updateConnectionState(ConnectionState.connecting);
-      
+
       _logger.i('WebRTC caller initialization completed (Local)');
     } catch (e) {
       _logger.e('Failed to initialize as caller: $e');
@@ -109,44 +110,44 @@ class WebRTCServiceLocal implements WebRTCService {
   Future<void> initAsCallee(String roomId) async {
     try {
       _logger.i('Initializing WebRTC as callee for room: $roomId (Local)');
-      
+
       _currentRoomId = roomId;
       _isCaller = false;
-      
+
       await _createPeerConnection();
-      
+
       // Set up data channel listener for incoming channels
       _peerConnection!.onDataChannel = (channel) {
         _dataChannel = channel;
         _setupDataChannelListeners();
         _logger.i('Data channel received from caller (Local)');
       };
-      
+
       // Get offer from local storage
       final roomData = await _localDataSource.getRoomData(roomId);
       if (roomData == null || roomData['offer'] == null) {
         throw Exception('No offer found for room: $roomId');
       }
-      
+
       final offerData = roomData['offer'] as Map<String, dynamic>;
       final offer = RTCSessionDescription(offerData['sdp'], offerData['type']);
-      
+
       // Set remote description (offer)
       await _peerConnection!.setRemoteDescription(offer);
-      
+
       // Create and set local answer
       final answer = await _peerConnection!.createAnswer();
       await _peerConnection!.setLocalDescription(answer);
-      
+
       // Store answer in local storage
       await _localDataSource.setAnswer(roomId, answer);
-      
+
       // Listen for ICE candidates from caller
       _listenToRemoteIceCandidates('caller');
-      
+
       _isInitialized = true;
       _updateConnectionState(ConnectionState.connecting);
-      
+
       _logger.i('WebRTC callee initialization completed (Local)');
     } catch (e) {
       _logger.e('Failed to initialize as callee: $e');
@@ -167,7 +168,7 @@ class WebRTCServiceLocal implements WebRTCService {
         'chat',
         dataChannelDict,
       );
-      
+
       _setupDataChannelListeners();
       _logger.i('Data channel "chat" created (Local)');
     } catch (e) {
@@ -302,19 +303,19 @@ class WebRTCServiceLocal implements WebRTCService {
     _iceCandidatesSubscription = _localDataSource
         .listenIceCandidates(_currentRoomId!, remoteType)
         .listen(
-      (candidate) async {
-        try {
-          await _peerConnection!.addCandidate(candidate);
-          _logger.d('Remote ICE candidate added (Local)');
-        } catch (e) {
-          _logger.e('Failed to add remote ICE candidate: $e');
-        }
-      },
-      onError: (e) {
-        _logger.e('Error listening to ICE candidates: $e');
-        _errorController.add('Error listening to ICE candidates: $e');
-      },
-    );
+          (candidate) async {
+            try {
+              await _peerConnection!.addCandidate(candidate);
+              _logger.d('Remote ICE candidate added (Local)');
+            } catch (e) {
+              _logger.e('Failed to add remote ICE candidate: $e');
+            }
+          },
+          onError: (e) {
+            _logger.e('Error listening to ICE candidates: $e');
+            _errorController.add('Error listening to ICE candidates: $e');
+          },
+        );
   }
 
   /// Listen for answer from callee (caller only)
@@ -326,14 +327,18 @@ class WebRTCServiceLocal implements WebRTCService {
         final roomData = await _localDataSource.getRoomData(roomId);
         if (roomData != null && roomData['answer'] != null) {
           final answerData = roomData['answer'] as Map<String, dynamic>;
-          final answer = RTCSessionDescription(answerData['sdp'], answerData['type']);
+          final answer = RTCSessionDescription(
+            answerData['sdp'],
+            answerData['type'],
+          );
           await _peerConnection!.setRemoteDescription(answer);
           _logger.i('Answer received and set as remote description (Local)');
           timer.cancel();
         }
       } catch (e) {
         _logger.e('Error checking for answer: $e');
-        if (timer.tick > 30) { // Stop after 60 seconds
+        if (timer.tick > 30) {
+          // Stop after 60 seconds
           timer.cancel();
           _errorController.add('Timeout waiting for answer');
         }

@@ -7,10 +7,10 @@ abstract class WebRTCService {
   // Public streams
   Stream<ChatMessage> get messageStream;
   Stream<ConnectionState> get connectionStateStream;
-  
+
   // Connection status
   bool get isConnected;
-  
+
   // Core methods
   Future<void> initAsCaller(String roomId);
   Future<void> initAsCallee(String roomId);

@@ -7,7 +7,8 @@ class InMemorySignalingDataSource implements SignalingDataSource {
   final Map<String, Map<String, dynamic>> _rooms = {};
   final Map<String, StreamController<OfferData?>> _offerControllers = {};
   final Map<String, StreamController<AnswerData?>> _answerControllers = {};
-  final Map<String, StreamController<List<IceCandidateModel>>> _candidateControllers = {};
+  final Map<String, StreamController<List<IceCandidateModel>>>
+  _candidateControllers = {};
 
   @override
   Future<void> createRoom(String roomId) async {
@@ -97,13 +98,20 @@ class InMemorySignalingDataSource implements SignalingDataSource {
   }
 
   @override
-  Future<void> addIceCandidate(String roomId, IceCandidateModel candidate, bool isFromCaller) async {
+  Future<void> addIceCandidate(
+    String roomId,
+    IceCandidateModel candidate,
+    bool isFromCaller,
+  ) async {
     if (!_rooms.containsKey(roomId)) {
       throw Exception('Room $roomId does not exist');
     }
 
-    final candidatesKey = isFromCaller ? 'callerCandidates' : 'calleeCandidates';
-    final candidates = _rooms[roomId]![candidatesKey] as List<IceCandidateModel>;
+    final candidatesKey = isFromCaller
+        ? 'callerCandidates'
+        : 'calleeCandidates';
+    final candidates =
+        _rooms[roomId]![candidatesKey] as List<IceCandidateModel>;
     candidates.add(candidate);
 
     // Notify listeners for the opposite role
@@ -114,10 +122,14 @@ class InMemorySignalingDataSource implements SignalingDataSource {
   }
 
   @override
-  Stream<List<IceCandidateModel>> listenForIceCandidates(String roomId, bool isForCaller) {
+  Stream<List<IceCandidateModel>> listenForIceCandidates(
+    String roomId,
+    bool isForCaller,
+  ) {
     final listenerKey = '${roomId}_$isForCaller';
     if (!_candidateControllers.containsKey(listenerKey)) {
-      _candidateControllers[listenerKey] = StreamController<List<IceCandidateModel>>.broadcast();
+      _candidateControllers[listenerKey] =
+          StreamController<List<IceCandidateModel>>.broadcast();
     }
     return _candidateControllers[listenerKey]!.stream;
   }
@@ -138,7 +150,7 @@ class InMemorySignalingDataSource implements SignalingDataSource {
     for (final controller in _candidateControllers.values) {
       controller.close();
     }
-    
+
     _offerControllers.clear();
     _answerControllers.clear();
     _candidateControllers.clear();

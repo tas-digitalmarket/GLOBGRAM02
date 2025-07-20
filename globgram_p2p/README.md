@@ -196,9 +196,9 @@ If you encounter **"Unable to initialize Firebase"** errors:
 
 ### Upcoming Refactor
 
-This project includes draft Freezed state implementations in preparation for Phase 5 refactor:
-- `lib/features/chat/presentation/bloc/draft_chat_state.dart` - Type-safe ChatState with Freezed
-- `lib/features/room_selection/presentation/bloc/draft_room_selection_state.dart` - Type-safe RoomSelectionState with Freezed
+This project includes draft Freezed state implementations prepared for Phase 5 refactor:
+- `lib/features/chat/presentation/draft_chat_state.dart` - Type-safe ChatState with Freezed
+- `lib/features/room_selection/presentation/draft_room_selection_state.dart` - Type-safe RoomSelectionState with Freezed
 
 These draft implementations will replace the current Equatable-based states to provide better type safety and immutability.
 

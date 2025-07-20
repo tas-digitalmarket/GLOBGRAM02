@@ -4,11 +4,7 @@ class ErrorScreen extends StatelessWidget {
   final Object error;
   final VoidCallback onRetry;
 
-  const ErrorScreen({
-    super.key,
-    required this.error,
-    required this.onRetry,
-  });
+  const ErrorScreen({super.key, required this.error, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -26,11 +22,7 @@ class ErrorScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 32),
-              Icon(
-                Icons.error_outline,
-                size: 80,
-                color: Colors.red.shade600,
-              ),
+              Icon(Icons.error_outline, size: 80, color: Colors.red.shade600),
               const SizedBox(height: 24),
               Text(
                 'Initialization Failed',
@@ -43,10 +35,7 @@ class ErrorScreen extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'The application failed to initialize properly.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.red.shade700,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.red.shade700),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -77,7 +66,10 @@ class ErrorScreen extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red.shade600,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
                 ),
                 child: const Text('Retry'),
               ),

@@ -17,7 +17,7 @@ Future<void> main() async {
 Future<void> runAppWithFirebase() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   try {
     // Initialize EasyLocalization
     await EasyLocalization.ensureInitialized();
@@ -31,7 +31,7 @@ Future<void> runAppWithFirebase() async {
     } catch (firebaseError, stackTrace) {
       debugPrint('[❌] Firebase initialization failed: $firebaseError');
       debugPrint('Stack trace: $stackTrace');
-      
+
       // Show error screen for Firebase failure
       runApp(_buildErrorApp('Firebase initialization failed', firebaseError));
       return;
@@ -69,7 +69,7 @@ Future<void> runAppWithFirebase() async {
     Logger().e('Stack trace: $stackTrace');
     debugPrint('[❌] Application initialization failed: $e');
     debugPrint('Stack trace: $stackTrace');
-    
+
     // Run fallback error app
     runApp(_buildErrorApp('Application initialization failed', e));
   }

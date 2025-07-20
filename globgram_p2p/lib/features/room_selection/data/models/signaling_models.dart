@@ -19,11 +19,7 @@ class OfferData {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'sdp': sdp,
-      'type': type,
-      'timestamp': timestamp.toIso8601String(),
-    };
+    return {'sdp': sdp, 'type': type, 'timestamp': timestamp.toIso8601String()};
   }
 }
 
@@ -48,11 +44,7 @@ class AnswerData {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'sdp': sdp,
-      'type': type,
-      'timestamp': timestamp.toIso8601String(),
-    };
+    return {'sdp': sdp, 'type': type, 'timestamp': timestamp.toIso8601String()};
   }
 }
 

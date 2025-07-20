@@ -26,7 +26,7 @@ final appRouter = GoRouter(
         // Read asCaller query parameter, default to false (callee)
         final asCallerParam = state.uri.queryParameters['asCaller'];
         final asCaller = asCallerParam?.toLowerCase() == 'true';
-        
+
         return BlocProvider<ChatBloc>(
           create: (context) {
             final chatBloc = getIt<ChatBloc>();

@@ -27,10 +27,17 @@ abstract class SignalingDataSource {
   Stream<AnswerData?> listenForAnswer(String roomId);
 
   /// Adds an ICE candidate for the specified room
-  Future<void> addIceCandidate(String roomId, IceCandidateModel candidate, bool isFromCaller);
+  Future<void> addIceCandidate(
+    String roomId,
+    IceCandidateModel candidate,
+    bool isFromCaller,
+  );
 
   /// Listens for ICE candidates for the specified room
-  Stream<List<IceCandidateModel>> listenForIceCandidates(String roomId, bool isForCaller);
+  Stream<List<IceCandidateModel>> listenForIceCandidates(
+    String roomId,
+    bool isForCaller,
+  );
 
   /// Clears all data for a room
   Future<void> clearRoom(String roomId);

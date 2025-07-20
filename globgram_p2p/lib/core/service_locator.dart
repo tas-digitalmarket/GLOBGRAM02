@@ -37,7 +37,9 @@ Future<void> setupServiceLocator() async {
 
   // Room Selection Bloc
   getIt.registerFactory<RoomSelectionLocalBloc>(
-    () => RoomSelectionLocalBloc(localDataSource: getIt<RoomRemoteDataSourceLocal>()),
+    () => RoomSelectionLocalBloc(
+      localDataSource: getIt<RoomRemoteDataSourceLocal>(),
+    ),
   );
 
   // WebRTC service with conditional logic

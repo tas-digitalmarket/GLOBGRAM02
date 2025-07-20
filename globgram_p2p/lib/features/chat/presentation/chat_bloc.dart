@@ -291,7 +291,9 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
 
   void initializeConnection(String roomId, {bool asCaller = true}) async {
     try {
-      _logger.i('[🎯] ChatBloc.initializeConnection - roomId: $roomId, asCaller: $asCaller');
+      _logger.i(
+        '[🎯] ChatBloc.initializeConnection - roomId: $roomId, asCaller: $asCaller',
+      );
       if (asCaller) {
         _logger.i('[🎯] Initializing as CALLER (room creator)');
         await _webrtcService.initAsCaller(roomId);

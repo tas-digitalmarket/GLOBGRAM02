@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class LoadingRoomDialog extends StatelessWidget {
   final String message;
 
-  const LoadingRoomDialog({
-    super.key,
-    required this.message,
-  });
+  const LoadingRoomDialog({super.key, required this.message});
 
   @override
   Widget build(BuildContext context) {

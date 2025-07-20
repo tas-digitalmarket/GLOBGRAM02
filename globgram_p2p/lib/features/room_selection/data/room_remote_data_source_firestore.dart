@@ -12,7 +12,7 @@ class RoomRemoteDataSourceFirestore {
   Future<String> createRoom() async {
     try {
       final roomId = _generateRoomId();
-      
+
       await _firestore.collection('rooms').doc(roomId).set({
         'offer': null, // Will be set later when WebRTC offer is created
         'answer': null,
@@ -32,14 +32,14 @@ class RoomRemoteDataSourceFirestore {
   Future<void> joinRoom(String roomId) async {
     try {
       final roomDoc = await _firestore.collection('rooms').doc(roomId).get();
-      
+
       if (!roomDoc.exists) {
         throw Exception('Room not found: $roomId');
       }
 
       final roomData = roomDoc.data()!;
       final offer = roomData['offer'];
-      
+
       if (offer == null) {
         throw Exception('Room offer not available: $roomId');
       }
@@ -59,7 +59,7 @@ class RoomRemoteDataSourceFirestore {
 
   /// Add ICE candidate to Firestore
   Future<void> addIceCandidate(
-    String roomId, 
+    String roomId,
     String type, // 'caller' or 'callee'
     RTCIceCandidate candidate,
   ) async {
@@ -71,11 +71,11 @@ class RoomRemoteDataSourceFirestore {
           .doc(type)
           .collection('list')
           .add({
-        'candidate': candidate.candidate,
-        'sdpMid': candidate.sdpMid,
-        'sdpMLineIndex': candidate.sdpMLineIndex,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+            'candidate': candidate.candidate,
+            'sdpMid': candidate.sdpMid,
+            'sdpMLineIndex': candidate.sdpMLineIndex,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
 
       _logger.d('ICE candidate added for $type in room $roomId');
     } catch (e) {
@@ -95,27 +95,28 @@ class RoomRemoteDataSourceFirestore {
         .orderBy('timestamp')
         .snapshots()
         .map((snapshot) {
-      final candidates = <RTCIceCandidate>[];
-      
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        final candidate = RTCIceCandidate(
-          data['candidate'] as String,
-          data['sdpMid'] as String?,
-          data['sdpMLineIndex'] as int?,
-        );
-        candidates.add(candidate);
-      }
-      
-      return candidates;
-    }).expand((candidates) => candidates);
+          final candidates = <RTCIceCandidate>[];
+
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            final candidate = RTCIceCandidate(
+              data['candidate'] as String,
+              data['sdpMid'] as String?,
+              data['sdpMLineIndex'] as int?,
+            );
+            candidates.add(candidate);
+          }
+
+          return candidates;
+        })
+        .expand((candidates) => candidates);
   }
 
   /// Delete room and all sub-collections (caller only)
   Future<void> deleteRoom(String roomId) async {
     try {
       final batch = _firestore.batch();
-      
+
       // Delete candidates subcollections
       final callerCandidates = await _firestore
           .collection('rooms')
@@ -124,7 +125,7 @@ class RoomRemoteDataSourceFirestore {
           .doc('caller')
           .collection('list')
           .get();
-      
+
       for (final doc in callerCandidates.docs) {
         batch.delete(doc.reference);
       }
@@ -136,27 +137,31 @@ class RoomRemoteDataSourceFirestore {
           .doc('callee')
           .collection('list')
           .get();
-      
+
       for (final doc in calleeCandidates.docs) {
         batch.delete(doc.reference);
       }
 
       // Delete candidates documents
-      batch.delete(_firestore
-          .collection('rooms')
-          .doc(roomId)
-          .collection('candidates')
-          .doc('caller'));
-      
-      batch.delete(_firestore
-          .collection('rooms')
-          .doc(roomId)
-          .collection('candidates')
-          .doc('callee'));
+      batch.delete(
+        _firestore
+            .collection('rooms')
+            .doc(roomId)
+            .collection('candidates')
+            .doc('caller'),
+      );
+
+      batch.delete(
+        _firestore
+            .collection('rooms')
+            .doc(roomId)
+            .collection('candidates')
+            .doc('callee'),
+      );
 
       // Delete room document
       batch.delete(_firestore.collection('rooms').doc(roomId));
-      
+
       await batch.commit();
       _logger.i('Room deleted successfully: $roomId');
     } catch (e) {
@@ -169,10 +174,7 @@ class RoomRemoteDataSourceFirestore {
   Future<void> setOffer(String roomId, RTCSessionDescription offer) async {
     try {
       await _firestore.collection('rooms').doc(roomId).update({
-        'offer': {
-          'type': offer.type,
-          'sdp': offer.sdp,
-        },
+        'offer': {'type': offer.type, 'sdp': offer.sdp},
       });
       _logger.i('Offer set for room: $roomId');
     } catch (e) {
@@ -185,10 +187,7 @@ class RoomRemoteDataSourceFirestore {
   Future<void> setAnswer(String roomId, RTCSessionDescription answer) async {
     try {
       await _firestore.collection('rooms').doc(roomId).update({
-        'answer': {
-          'type': answer.type,
-          'sdp': answer.sdp,
-        },
+        'answer': {'type': answer.type, 'sdp': answer.sdp},
         'status': 'connected',
       });
       _logger.i('Answer set for room: $roomId');
