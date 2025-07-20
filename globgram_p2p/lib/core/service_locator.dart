@@ -1,10 +1,13 @@
 import 'package:get_it/get_it.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
+import 'package:globgram_p2p/core/app_config.dart';
+import 'package:globgram_p2p/core/signaling_service.dart';
 import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source.dart';
 import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source_firestore.dart';
 import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source_local.dart';
 import 'package:globgram_p2p/features/room_selection/data/datasources/signaling_data_source.dart';
 import 'package:globgram_p2p/features/room_selection/data/datasources/in_memory_signaling_data_source.dart';
+import 'package:globgram_p2p/features/room_selection/data/datasources/firestore_signaling_data_source.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/room_selection_local_bloc.dart';
 import 'package:globgram_p2p/features/chat/domain/webrtc_service.dart';
 import 'package:globgram_p2p/features/chat/data/webrtc_service_impl.dart';
@@ -29,10 +32,15 @@ Future<void> setupServiceLocator() async {
     () => RoomRemoteDataSourceFirestore(),
   );
 
-  // Signaling data sources for Phase 2
+  // Signaling data sources for Phase 2 - configurable via feature flag
   getIt.registerLazySingleton<SignalingDataSource>(() {
-    // Use in-memory for all environments (for now)
-    return InMemorySignalingDataSource();
+    if (AppConfig.useFirestoreSignaling) {
+      // Use Firestore for production signaling
+      return FirestoreSignalingDataSource();
+    } else {
+      // Use in-memory for development/testing
+      return InMemorySignalingDataSource();
+    }
   });
 
   // Room Selection Bloc
@@ -51,6 +59,9 @@ Future<void> setupServiceLocator() async {
     // Use Firestore for production
     return WebRTCServiceImpl(getIt<RoomRemoteDataSourceFirestore>());
   });
+
+  // Signaling abstraction service
+  getIt.registerLazySingleton<SignalingService>(() => SignalingService());
 
   // ChatBloc (depends on WebRTC service)
   getIt.registerFactory<ChatBloc>(() => ChatBloc(getIt<WebRTCService>()));

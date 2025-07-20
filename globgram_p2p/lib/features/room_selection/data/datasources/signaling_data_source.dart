@@ -2,43 +2,31 @@ import 'package:globgram_p2p/features/room_selection/data/models/signaling_model
 
 /// Abstract data source interface for signaling operations
 abstract class SignalingDataSource {
-  /// Creates a new room with the given room ID
-  Future<void> createRoom(String roomId);
+  /// Create a room with an offer and return the room ID
+  Future<String> createRoom(OfferData offer);
 
-  /// Attempts to join a room. Returns true if successful, false if room is full
-  Future<bool> joinRoom(String roomId);
+  /// Save an answer for a specific room
+  Future<void> saveAnswer(String roomId, AnswerData answer);
 
-  /// Leaves a room and cleans up resources
-  Future<void> leaveRoom(String roomId);
+  /// Watch for answer updates in a room
+  Stream<AnswerData?> watchAnswer(String roomId);
 
-  /// Checks if a room exists
-  Future<bool> roomExists(String roomId);
+  /// Fetch the offer for a specific room
+  Future<OfferData> fetchOffer(String roomId);
 
-  /// Sends an offer to the specified room
-  Future<void> sendOffer(String roomId, OfferData offer);
-
-  /// Listens for offers in the specified room
-  Stream<OfferData?> listenForOffer(String roomId);
-
-  /// Sends an answer to the specified room
-  Future<void> sendAnswer(String roomId, AnswerData answer);
-
-  /// Listens for answers in the specified room
-  Stream<AnswerData?> listenForAnswer(String roomId);
-
-  /// Adds an ICE candidate for the specified room
+  /// Add an ICE candidate for a specific room and role (caller/callee)
   Future<void> addIceCandidate(
     String roomId,
+    String role,
     IceCandidateModel candidate,
-    bool isFromCaller,
   );
 
-  /// Listens for ICE candidates for the specified room
-  Stream<List<IceCandidateModel>> listenForIceCandidates(
+  /// Watch ICE candidates for a specific room and role
+  Stream<List<IceCandidateModel>> watchIceCandidates(
     String roomId,
-    bool isForCaller,
+    String role,
   );
 
-  /// Clears all data for a room
-  Future<void> clearRoom(String roomId);
+  /// Check if a room exists
+  Future<bool> roomExists(String roomId);
 }

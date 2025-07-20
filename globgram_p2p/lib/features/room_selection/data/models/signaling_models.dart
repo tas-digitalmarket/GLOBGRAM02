@@ -1,82 +1,41 @@
-/// Represents WebRTC offer data for signaling
-class OfferData {
-  final String sdp;
-  final String type;
-  final DateTime timestamp;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  const OfferData({
-    required this.sdp,
-    required this.type,
-    required this.timestamp,
-  });
+part 'signaling_models.freezed.dart';
+part 'signaling_models.g.dart';
 
-  factory OfferData.fromJson(Map<String, dynamic> json) {
-    return OfferData(
-      sdp: json['sdp'] as String,
-      type: json['type'] as String,
-      timestamp: DateTime.parse(json['timestamp'] as String),
-    );
-  }
+@freezed
+class OfferData with _$OfferData {
+  const factory OfferData({
+    required String sdp,
+    required String type,
+    required DateTime timestamp,
+  }) = _OfferData;
 
-  Map<String, dynamic> toJson() {
-    return {'sdp': sdp, 'type': type, 'timestamp': timestamp.toIso8601String()};
-  }
+  factory OfferData.fromJson(Map<String, dynamic> json) =>
+      _$OfferDataFromJson(json);
 }
 
-/// Represents WebRTC answer data for signaling
-class AnswerData {
-  final String sdp;
-  final String type;
-  final DateTime timestamp;
+@freezed
+class AnswerData with _$AnswerData {
+  const factory AnswerData({
+    required String sdp,
+    required String type,
+    required DateTime timestamp,
+  }) = _AnswerData;
 
-  const AnswerData({
-    required this.sdp,
-    required this.type,
-    required this.timestamp,
-  });
-
-  factory AnswerData.fromJson(Map<String, dynamic> json) {
-    return AnswerData(
-      sdp: json['sdp'] as String,
-      type: json['type'] as String,
-      timestamp: DateTime.parse(json['timestamp'] as String),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {'sdp': sdp, 'type': type, 'timestamp': timestamp.toIso8601String()};
-  }
+  factory AnswerData.fromJson(Map<String, dynamic> json) =>
+      _$AnswerDataFromJson(json);
 }
 
-/// Represents ICE candidate data for signaling
-class IceCandidateModel {
-  final String candidate;
-  final String sdpMid;
-  final int sdpMLineIndex;
-  final DateTime timestamp;
+@freezed
+class IceCandidateModel with _$IceCandidateModel {
+  const factory IceCandidateModel({
+    required String candidate,
+    required String? sdpMid,
+    required int? sdpMLineIndex,
+    required DateTime timestamp,
+  }) = _IceCandidateModel;
 
-  const IceCandidateModel({
-    required this.candidate,
-    required this.sdpMid,
-    required this.sdpMLineIndex,
-    required this.timestamp,
-  });
-
-  factory IceCandidateModel.fromJson(Map<String, dynamic> json) {
-    return IceCandidateModel(
-      candidate: json['candidate'] as String,
-      sdpMid: json['sdpMid'] as String,
-      sdpMLineIndex: json['sdpMLineIndex'] as int,
-      timestamp: DateTime.parse(json['timestamp'] as String),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'candidate': candidate,
-      'sdpMid': sdpMid,
-      'sdpMLineIndex': sdpMLineIndex,
-      'timestamp': timestamp.toIso8601String(),
-    };
-  }
+  factory IceCandidateModel.fromJson(Map<String, dynamic> json) =>
+      _$IceCandidateModelFromJson(json);
 }
