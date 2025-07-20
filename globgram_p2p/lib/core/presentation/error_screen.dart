@@ -22,11 +22,7 @@ class ErrorScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 32),
-              Icon(
-                Icons.error_outline,
-                size: 80,
-                color: Colors.red.shade600,
-              ),
+              Icon(Icons.error_outline, size: 80, color: Colors.red.shade600),
               const SizedBox(height: 24),
               Text(
                 'Initialization Failed',
@@ -39,10 +35,7 @@ class ErrorScreen extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'The application failed to initialize properly.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.red.shade700,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.red.shade700),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
