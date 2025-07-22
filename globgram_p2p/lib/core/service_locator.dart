@@ -13,7 +13,7 @@ import 'package:globgram_p2p/features/chat/presentation/chat_bloc.dart';
 final getIt = GetIt.instance;
 
 Future<void> setupServiceLocator() async {
-  // Core SignalingDataSource - only use in-memory since Firestore flag is false
+  // Core SignalingDataSource - use in-memory for now
   getIt.registerLazySingleton<SignalingDataSource>(() => InMemorySignalingDataSource());
 
   // Legacy Firestore datasource (kept for compatibility)

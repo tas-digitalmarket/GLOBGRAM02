@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -101,11 +102,18 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
                     orElse: () => false,
                   );
 
+                  // In waitingAnswer state, only disable Create button, keep Join button active
+                  final isCreating = state.maybeWhen(
+                    creating: () => true,
+                    waitingAnswer: (_) => true,
+                    orElse: () => false,
+                  );
+
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       ElevatedButton.icon(
-                        onPressed: isLoading
+                        onPressed: isCreating
                             ? null
                             : () => _createRoom(context),
                         icon: const Icon(Icons.add),
@@ -164,6 +172,32 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
                                 fontSize: 16,
                                 fontFamily: 'monospace',
                               ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: () => _copyToClipboard(context, roomId),
+                                  icon: const Icon(Icons.copy, size: 16),
+                                  label: const Text('Copy ID'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  ),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () => _clearRoom(context),
+                                  icon: const Icon(Icons.clear, size: 16),
+                                  label: const Text('Clear'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -234,6 +268,36 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
         },
       ),
     );
+  }
+
+  void _clearRoom(BuildContext context) {
+    context.read<RoomSelectionLocalBloc>().add(const RoomSelectionEvent.clearRequested());
+  }
+
+  void _copyToClipboard(BuildContext context, String roomId) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: roomId));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Room ID copied: $roomId'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to copy: $roomId'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   void _showLoadingDialog(BuildContext context, String message) {

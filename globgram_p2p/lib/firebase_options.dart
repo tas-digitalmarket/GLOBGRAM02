@@ -42,25 +42,27 @@ class DefaultFirebaseOptions {
   }
 
   // Web configuration - Replace with actual Firebase Web configuration
-  // Get these values from Firebase Console > Project Settings > General > Your apps > Web app
+
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDGwXxN4k5vF7mJ9jH1uQ3pR8sT6wE4oL2',
-    appId: '1:123456789012:web:a1b2c3d4e5f6g7h8i9j0',
-    messagingSenderId: '123456789012',
-    projectId: 'globgram-p2p-project',
-    authDomain: 'globgram-p2p-project.firebaseapp.com',
-    storageBucket: 'globgram-p2p-project.appspot.com',
-    measurementId: 'G-ABC123DEF456', // Optional for Analytics
+    apiKey: 'AIzaSyD3Sug8gr_feCs7XirAzzEiqFMK2ZHzDks',
+    appId: '1:786174087282:web:6322c68e14b9c81f44f2eb',
+    messagingSenderId: '786174087282',
+    projectId: 'globgram02',
+    authDomain: 'globgram02.firebaseapp.com',
+    storageBucket: 'globgram02.firebasestorage.app',
+  );
+
+  // Get these values from Firebase Console > Project Settings > General > Your apps > Web app
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyAtAUknIOZ92eKNPo9FhwIdNR2RSawxGnY',
+    appId: '1:786174087282:android:81cb03d084ac0b7944f2eb',
+    messagingSenderId: '786174087282',
+    projectId: 'globgram02',
+    storageBucket: 'globgram02.firebasestorage.app',
   );
 
   // Android configuration - Replace with actual Firebase Android configuration  
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCDwXxN5k8vF9mK2jH7uQ9pR1sT3wE6oL4',
-    appId: '1:123456789012:android:a1b2c3d4e5f6g7h8',
-    messagingSenderId: '123456789012',
-    projectId: 'globgram-p2p-project',
-    storageBucket: 'globgram-p2p-project.appspot.com',
-  );
 
   // iOS configuration - Replace with actual Firebase iOS configuration
   static const FirebaseOptions ios = FirebaseOptions(

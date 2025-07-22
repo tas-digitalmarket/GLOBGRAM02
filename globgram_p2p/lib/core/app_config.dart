@@ -2,7 +2,7 @@
 class AppConfig {
   /// Feature flag: Use Firestore for signaling instead of in-memory
   /// Set to false to fallback to in-memory signaling for development/testing
-  /// TODO: Set to true once freezed models are generated
+  /// Temporarily disabled due to compilation issues - will enable after fixing
   static const bool useFirestoreSignaling = false;
 
   /// Feature flag: Enable debug logging
