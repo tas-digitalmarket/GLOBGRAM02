@@ -2,8 +2,8 @@
 class AppConfig {
   /// Feature flag: Use Firestore for signaling instead of in-memory
   /// Set to false to fallback to in-memory signaling for development/testing
-  /// Temporarily disabled due to compilation issues - will enable after fixing
-  static const bool useFirestoreSignaling = false;
+  /// Now enabled to use Firebase Firestore for cloud storage
+  static const bool useFirestoreSignaling = true;
 
   /// Feature flag: Enable debug logging
   static const bool enableDebugLogging = true;
