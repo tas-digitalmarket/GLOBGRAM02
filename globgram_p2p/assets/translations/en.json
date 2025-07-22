@@ -1,16 +1,62 @@
 {
-  "app_title": "GlobGram P2P",
-  "welcome": "Welcome to GlobGram P2P",
-  "welcome_message": "Connect with others through decentralized video calls",
-  "create_room": "Create Room",
-  "join_room": "Join Room",
-  "room_selection": "Room Selection",
-  "back_to_home": "Back to Home",
-  "select_room": "Select a Room",
-  "room_created": "Room Created",
-  "room_created_message": "Room created successfully with ID: {0}",
-  "enter_room_id": "Enter Room ID",
-  "join": "Join",
-  "cancel": "Cancel",
-  "loading": "Loading..."
+  "room": {
+    "selection": {
+      "title": "Room Selection"
+    },
+    "create": {
+      "button": "Create Room",
+      "success": "Room Created!",
+      "creating": "Creating room...",
+      "waiting": "Waiting for answer..."
+    },
+    "join": {
+      "button": "Join Room",
+      "dialog": {
+        "title": "Join Room",
+        "message": "Enter the Room ID to join:",
+        "label": "Room ID",
+        "hint": "e.g., R907246",
+        "cancel": "Cancel"
+      },
+      "joining": "Joining room..."
+    },
+    "connected": "Connected to Room!",
+    "copy": {
+      "roomId": {
+        "success": "Room ID copied to clipboard"
+      }
+    }
+  },
+  "chat": {
+    "input": {
+      "hint": "Type a message..."
+    },
+    "status": {
+      "initializing": "Initializing",
+      "connecting": "Connecting",
+      "connected": "Connected",
+      "error": "Error",
+      "disconnected": "Disconnected"
+    },
+    "messages": {
+      "empty": "No messages yet",
+      "start": "Start the conversation! 💬",
+      "initializing": "Initializing chat...",
+      "connecting": "Connecting to chat..."
+    }
+  },
+  "error": {
+    "room": {
+      "notfound": "Room not found"
+    },
+    "generic": "An error occurred"
+  },
+  "common": {
+    "dismiss": "Dismiss",
+    "welcome": "Welcome to GlobGram P2P",
+    "subtitle": "Create a new room or join an existing one"
+  },
+  "language": {
+    "toggle": "Toggle Language"
+  }
 }

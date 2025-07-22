@@ -1,9 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:globgram_p2p/features/chat/domain/chat_message.dart';
 import 'package:globgram_p2p/features/chat/presentation/chat_bloc.dart';
+import 'package:globgram_p2p/features/chat/presentation/chat_state.dart';
 import 'package:globgram_p2p/features/chat/presentation/message_bubble.dart';
+import 'package:globgram_p2p/features/chat/presentation/widgets/connection_status_widget.dart';
+import 'package:globgram_p2p/core/service_locator.dart';
+import 'package:globgram_p2p/features/chat/domain/webrtc_service.dart';
 
 class ChatPage extends StatefulWidget {
   final String roomId;
@@ -19,6 +25,7 @@ class _ChatPageState extends State<ChatPage> {
   static final Logger _logger = Logger();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  String? _lastErrorShown; // Track last error message to avoid duplicate snackbars
 
   @override
   void initState() {
@@ -43,18 +50,6 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  IconData _getConnectionIcon(ChatState state) {
-    if (state is ChatReady) return Icons.check_circle;
-    if (state is ChatConnecting) return Icons.flash_on;
-    return Icons.pause_circle_outline;
-  }
-
-  Color _getConnectionColor(ChatState state) {
-    if (state is ChatReady) return Colors.green;
-    if (state is ChatConnecting) return Colors.orange;
-    return Colors.grey;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,15 +72,21 @@ class _ChatPageState extends State<ChatPage> {
           ],
         ),
         actions: [
+          if (kDebugMode)
+            IconButton(
+              icon: const Icon(Icons.bug_report),
+              onPressed: () {
+                final webrtcService = getIt<WebRTCService>();
+                final debugInfo = webrtcService.getDebugInfo();
+                debugPrint('WebRTC Debug Info: $debugInfo');
+              },
+              tooltip: 'Debug WebRTC Connection',
+            ),
           BlocBuilder<ChatBloc, ChatState>(
             builder: (context, state) {
               return Padding(
                 padding: const EdgeInsets.only(right: 16.0),
-                child: Icon(
-                  _getConnectionIcon(state),
-                  color: _getConnectionColor(state),
-                  size: 24,
-                ),
+                child: ConnectionStatusWidget(state: state),
               );
             },
           ),
@@ -93,76 +94,163 @@ class _ChatPageState extends State<ChatPage> {
       ),
       body: Column(
         children: [
+          // TODO: Add media controls section here when implementing audio/video features
+          // This would include:
+          // - Local video preview widget
+          // - Audio/video toggle buttons
+          // - Remote video display area
+          // - Camera switch button (front/back)
+          // Example layout:
+          // if (mediaEnabled) MediaControlsWidget(webrtcService: webrtcService),
+          
           Expanded(
             child: BlocConsumer<ChatBloc, ChatState>(
               listener: (context, state) {
-                if (state is ChatReady && state.history.isNotEmpty) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _scrollToBottom();
-                  });
-                }
+                state.whenOrNull(
+                  connected: (roomId, isCaller, messages) {
+                    if (messages.isNotEmpty) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _scrollToBottom();
+                      });
+                    }
+                  },
+                  error: (message) {
+                    // Show error snackbar only once per unique error message
+                    if (_lastErrorShown != message) {
+                      _lastErrorShown = message;
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${'error.generic'.tr()}: $message'),
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 4),
+                            behavior: SnackBarBehavior.floating,
+                            margin: const EdgeInsets.all(16),
+                            action: SnackBarAction(
+                              label: 'common.dismiss'.tr(),
+                              textColor: Colors.white,
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              },
+                            ),
+                          ),
+                        );
+                      });
+                    }
+                  },
+                );
               },
               builder: (context, state) {
-                if (state is ChatReady) {
-                  if (state.history.isEmpty) {
-                    return const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.chat_bubble_outline,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'No messages yet',
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Start the conversation! 💬',
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ListView.separated(
-                    controller: _scrollController,
-                    reverse: true,
-                    padding: const EdgeInsets.all(16.0),
-                    itemCount: state.history.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final reversedIndex = state.history.length - 1 - index;
-                      final message = state.history[reversedIndex];
-                      return MessageBubble(
-                        msg: message,
-                        isMine: message.sender == ChatSender.self,
+                return state.when(
+                  initial: () => Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text('chat.messages.initializing'.tr()),
+                      ],
+                    ),
+                  ),
+                  connecting: (roomId, isCaller) => Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text('chat.messages.connecting'.tr()),
+                      ],
+                    ),
+                  ),
+                  connected: (roomId, isCaller, messages) {
+                    if (messages.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.chat_bubble_outline,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'chat.messages.empty'.tr(),
+                              style: const TextStyle(fontSize: 18, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'chat.messages.start'.tr(),
+                              style: const TextStyle(fontSize: 14, color: Colors.grey),
+                            ),
+                          ],
+                        ),
                       );
-                    },
-                  );
-                }
-
-                return const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('Connecting to chat...'),
-                    ],
+                    }
+                    
+                    return ListView.separated(
+                      controller: _scrollController,
+                      reverse: true,
+                      padding: const EdgeInsets.all(16.0),
+                      itemCount: messages.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final reversedIndex = messages.length - 1 - index;
+                        final message = messages[reversedIndex];
+                        return MessageBubble(
+                          msg: message,
+                          isMine: message.sender == ChatSender.self,
+                        );
+                      },
+                    );
+                  },
+                  error: (message) => Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error,
+                          size: 64,
+                          color: Colors.red,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          '${'error.generic'.tr()}: $message',
+                          style: const TextStyle(fontSize: 18, color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                  disconnected: () => Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.cloud_off,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'chat.status.disconnected'.tr(),
+                          style: const TextStyle(fontSize: 18, color: Colors.grey),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
+                  ),
             ),
-          ),
           BlocBuilder<ChatBloc, ChatState>(
             builder: (context, state) {
-              final isReady = state is ChatReady;
+              final isReady = state.maybeWhen(
+                connected: (_, __, ___) => true,
+                orElse: () => false,
+              );
+              
               return Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16.0,
@@ -193,8 +281,8 @@ class _ChatPageState extends State<ChatPage> {
                           textCapitalization: TextCapitalization.sentences,
                           decoration: InputDecoration(
                             hintText: isReady
-                                ? 'Type a message...'
-                                : 'Connecting...',
+                                ? 'chat.input.hint'.tr()
+                                : 'chat.status.connecting'.tr(),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(24),
                               borderSide: BorderSide.none,

@@ -30,7 +30,7 @@ final appRouter = GoRouter(
         return BlocProvider<ChatBloc>(
           create: (context) {
             final chatBloc = getIt<ChatBloc>();
-            chatBloc.initializeConnection(roomId, asCaller: asCaller);
+            chatBloc.initializeConnection(roomId: roomId, isCaller: asCaller);
             return chatBloc;
           },
           child: ChatPage(roomId: roomId, asCaller: asCaller),

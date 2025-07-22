@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:globgram_p2p/core/service_locator.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/room_selection_local_bloc.dart';
+import 'package:globgram_p2p/features/room_selection/presentation/room_selection_state.dart';
+import 'package:globgram_p2p/features/room_selection/presentation/room_selection_event.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/dialogs/join_room_dialog.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/dialogs/error_room_dialog.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/dialogs/loading_room_dialog.dart';
@@ -33,27 +36,40 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Room Selection'),
+        title: Text('room.selection.title'.tr()),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            onPressed: () {
+              // Toggle between English and Farsi
+              final currentLocale = context.locale;
+              if (currentLocale.languageCode == 'en') {
+                context.setLocale(const Locale('fa'));
+              } else {
+                context.setLocale(const Locale('en'));
+              }
+            },
+            icon: const Icon(Icons.language),
+            tooltip: 'language.toggle'.tr(),
+          ),
+        ],
       ),
       body: BlocListener<RoomSelectionLocalBloc, RoomSelectionState>(
         listener: (context, state) {
-          // Handle loading states with safer dialog management
-          if (state is RoomCreating ||
-              state is RoomConnecting ||
-              state is RoomWaitingAnswer) {
-            _showLoadingDialog(context, state);
-          } else {
-            _dismissLoadingDialog();
-          }
-
-          // Handle other states
-          if (state is RoomError) {
-            _showErrorDialog(context, state.message);
-          } else if (state is RoomConnected) {
-            // Navigate to chat page with appropriate caller flag
-            context.go('/chat/${state.roomId}?asCaller=${state.isCaller}');
-          }
+          state.when(
+            idle: () => _dismissLoadingDialog(),
+            creating: () => _showLoadingDialog(context, 'room.create.creating'.tr()),
+            waitingAnswer: (roomId) => _showLoadingDialog(context, 'room.create.waiting'.tr()),
+            joining: (roomId) => _showLoadingDialog(context, 'room.join.joining'.tr()),
+            connected: (roomId, isCaller) {
+              _dismissLoadingDialog();
+              context.go('/chat/$roomId?asCaller=$isCaller');
+            },
+            failure: (message) {
+              _dismissLoadingDialog();
+              _showErrorDialog(context, message);
+            },
+          );
         },
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -63,22 +79,25 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
             children: [
               const Icon(Icons.video_call, size: 80, color: Colors.teal),
               const SizedBox(height: 32),
-              const Text(
-                'Welcome to GlobGram P2P',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              Text(
+                'common.welcome'.tr(),
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Create a new room or join an existing one',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+              Text(
+                'common.subtitle'.tr(),
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
               BlocBuilder<RoomSelectionLocalBloc, RoomSelectionState>(
                 builder: (context, state) {
-                  final isLoading =
-                      state is RoomCreating || state is RoomConnecting;
+                  final isLoading = state.maybeWhen(
+                    creating: () => true,
+                    joining: (_) => true,
+                    orElse: () => false,
+                  );
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -88,7 +107,7 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
                             ? null
                             : () => _createRoom(context),
                         icon: const Icon(Icons.add),
-                        label: const Text('Create Room'),
+                        label: Text('room.create.button'.tr()),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           backgroundColor: Colors.teal,
@@ -101,7 +120,7 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
                             ? null
                             : () => _showJoinDialog(context),
                         icon: const Icon(Icons.login),
-                        label: const Text('Join Room'),
+                        label: Text('room.join.button'.tr()),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           backgroundColor: Colors.teal.shade300,
@@ -115,8 +134,8 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
               const SizedBox(height: 32),
               BlocBuilder<RoomSelectionLocalBloc, RoomSelectionState>(
                 builder: (context, state) {
-                  if (state is RoomWaitingAnswer) {
-                    return Card(
+                  return state.maybeWhen(
+                    waitingAnswer: (roomId) => Card(
                       color: Colors.green.shade50,
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
@@ -128,9 +147,9 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
                               size: 32,
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              'Room Created!',
-                              style: TextStyle(
+                            Text(
+                              'room.create.success'.tr(),
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.green,
@@ -138,7 +157,7 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Room ID: ${state.roomId}',
+                              'Room ID: $roomId',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontFamily: 'monospace',
@@ -147,19 +166,18 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
                           ],
                         ),
                       ),
-                    );
-                  } else if (state is RoomConnected) {
-                    return Card(
+                    ),
+                    connected: (roomId, isCaller) => Card(
                       color: Colors.blue.shade50,
-                      child: const Padding(
-                        padding: EdgeInsets.all(16.0),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
                         child: Column(
                           children: [
-                            Icon(Icons.videocam, color: Colors.blue, size: 32),
-                            SizedBox(height: 8),
+                            const Icon(Icons.videocam, color: Colors.blue, size: 32),
+                            const SizedBox(height: 8),
                             Text(
-                              'Connected to Room!',
-                              style: TextStyle(
+                              'room.connected'.tr(),
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.blue,
@@ -168,9 +186,9 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
                           ],
                         ),
                       ),
-                    );
-                  }
-                  return const SizedBox.shrink();
+                    ),
+                    orElse: () => const SizedBox.shrink(),
+                  );
                 },
               ),
             ],
@@ -181,7 +199,7 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
   }
 
   void _createRoom(BuildContext context) {
-    context.read<RoomSelectionLocalBloc>().add(const CreateRequested());
+    context.read<RoomSelectionLocalBloc>().add(const RoomSelectionEvent.createRequested());
   }
 
   void _showJoinDialog(BuildContext context) {
@@ -191,7 +209,7 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
         onJoin: (String roomId) {
           Navigator.of(dialogContext).pop();
           if (mounted) {
-            context.read<RoomSelectionLocalBloc>().add(JoinRequested(roomId));
+            context.read<RoomSelectionLocalBloc>().add(RoomSelectionEvent.joinRequested(roomId: roomId));
           }
         },
         onCancel: () {
@@ -209,26 +227,15 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
         onDismiss: () {
           Navigator.of(dialogContext).pop();
           if (mounted) {
-            context.read<RoomSelectionLocalBloc>().add(const ClearRequested());
+            context.read<RoomSelectionLocalBloc>().add(const RoomSelectionEvent.clearRequested());
           }
         },
       ),
     );
   }
 
-  void _showLoadingDialog(BuildContext context, RoomSelectionState state) {
+  void _showLoadingDialog(BuildContext context, String message) {
     if (_loadingDialogContext != null) return;
-
-    String message;
-    if (state is RoomCreating) {
-      message = 'Creating room...';
-    } else if (state is RoomConnecting) {
-      message = 'Joining room...';
-    } else if (state is RoomWaitingAnswer) {
-      message = 'Waiting for participant...';
-    } else {
-      return;
-    }
 
     showDialog<void>(
       context: context,

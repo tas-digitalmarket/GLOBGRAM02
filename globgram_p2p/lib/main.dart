@@ -58,7 +58,7 @@ Future<void> runAppWithFirebase() async {
     // Run the application
     runApp(
       EasyLocalization(
-        supportedLocales: const [Locale('en')],
+        supportedLocales: const [Locale('en'), Locale('fa')],
         path: 'assets/translations',
         fallbackLocale: const Locale('en'),
         child: const MyApp(),

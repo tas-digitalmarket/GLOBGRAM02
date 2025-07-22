@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class JoinRoomDialog extends StatefulWidget {
   final Function(String) onJoin;
@@ -26,26 +27,26 @@ class _JoinRoomDialogState extends State<JoinRoomDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Join Room'),
+      title: Text('room.join.dialog.title'.tr()),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Enter the Room ID to join:'),
+          Text('room.join.dialog.message'.tr()),
           const SizedBox(height: 16),
           TextFormField(
             controller: _roomIdController,
-            decoration: const InputDecoration(
-              labelText: 'Room ID',
-              hintText: 'e.g., R907246',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.vpn_key),
+            decoration: InputDecoration(
+              labelText: 'room.join.dialog.label'.tr(),
+              hintText: 'room.join.dialog.hint'.tr(),
+              border: const OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.vpn_key),
             ),
             maxLines: 1,
           ),
         ],
       ),
       actions: [
-        TextButton(onPressed: widget.onCancel, child: const Text('Cancel')),
+        TextButton(onPressed: widget.onCancel, child: Text('room.join.dialog.cancel'.tr())),
         ElevatedButton(
           onPressed: () {
             final roomId = _roomIdController.text.trim();

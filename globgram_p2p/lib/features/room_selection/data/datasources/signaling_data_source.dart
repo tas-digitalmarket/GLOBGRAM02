@@ -29,4 +29,13 @@ abstract class SignalingDataSource {
 
   /// Check if a room exists
   Future<bool> roomExists(String roomId);
+
+  /// Clear SDP bodies after successful connection (security)
+  Future<void> clearSdpBodies(String roomId);
+
+  /// Mark room as connected to stop candidate listening
+  Future<void> markRoomConnected(String roomId);
+
+  /// Clean up room data when connection fails
+  Future<void> cleanupRoom(String roomId);
 }

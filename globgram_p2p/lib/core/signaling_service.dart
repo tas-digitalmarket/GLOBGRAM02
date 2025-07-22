@@ -1,97 +1,51 @@
-import 'dart:math';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:globgram_p2p/core/app_config.dart';
 import 'package:globgram_p2p/core/service_locator.dart';
 import 'package:globgram_p2p/features/room_selection/data/datasources/signaling_data_source.dart';
 import 'package:globgram_p2p/features/room_selection/data/models/signaling_models.dart';
-import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source_firestore.dart';
 
-/// Abstraction layer for signaling operations
-/// Routes to either new SignalingDataSource or legacy RoomRemoteDataSourceFirestore
-/// based on feature flag configuration
+/// Service layer for signaling operations using SignalingDataSource abstraction
 class SignalingService {
-  final SignalingDataSource? _signalingDataSource;
-  final RoomRemoteDataSourceFirestore? _legacyDataSource;
-  final Random _random = Random();
+  final SignalingDataSource _signalingDataSource;
 
-  SignalingService._({
-    SignalingDataSource? signalingDataSource,
-    RoomRemoteDataSourceFirestore? legacyDataSource,
-  })  : _signalingDataSource = signalingDataSource,
-        _legacyDataSource = legacyDataSource;
+  SignalingService._(this._signalingDataSource);
 
-  /// Factory constructor that chooses implementation based on feature flag
+  /// Factory constructor that gets SignalingDataSource from service locator
   factory SignalingService() {
-    if (AppConfig.useFirestoreSignaling) {
-      return SignalingService._(
-        signalingDataSource: getIt<SignalingDataSource>(),
-      );
-    } else {
-      return SignalingService._(
-        legacyDataSource: getIt<RoomRemoteDataSourceFirestore>(),
-      );
-    }
+    return SignalingService._(getIt<SignalingDataSource>());
   }
 
   /// Create room and return room ID
   Future<String> createRoom(RTCSessionDescription offer) async {
-    if (_signalingDataSource != null) {
-      // New signaling approach - will implement when freezed models are ready
-      throw UnimplementedError(
-        'New signaling not yet implemented. Set AppConfig.useFirestoreSignaling = false',
-      );
-    } else {
-      // Legacy approach - generate room ID and store offer
-      final roomId = _generateLegacyRoomId();
-      await _legacyDataSource!.setOffer(roomId, offer);
-      return roomId;
-    }
+    final offerData = OfferData(
+      sdp: offer.sdp!,
+      type: offer.type!,
+      timestamp: DateTime.now(),
+    );
+    return await _signalingDataSource.createRoom(offerData);
   }
 
   /// Save answer for room
   Future<void> saveAnswer(String roomId, RTCSessionDescription answer) async {
-    if (_signalingDataSource != null) {
-      // New signaling approach - will implement when freezed models are ready
-      throw UnimplementedError(
-        'New signaling not yet implemented. Set AppConfig.useFirestoreSignaling = false',
-      );
-    } else {
-      // Legacy approach
-      await _legacyDataSource!.setAnswer(roomId, answer);
-    }
+    final answerData = AnswerData(
+      sdp: answer.sdp!,
+      type: answer.type!,
+      timestamp: DateTime.now(),
+    );
+    await _signalingDataSource.saveAnswer(roomId, answerData);
   }
 
   /// Get offer for room
   Future<RTCSessionDescription> getOffer(String roomId) async {
-    if (_signalingDataSource != null) {
-      // New signaling approach - will implement when freezed models are ready
-      throw UnimplementedError(
-        'New signaling not yet implemented. Set AppConfig.useFirestoreSignaling = false',
-      );
-    } else {
-      // Legacy approach
-      final roomData = await _legacyDataSource!.getRoomData(roomId);
-      if (roomData == null || roomData['offer'] == null) {
-        throw Exception('No offer found for room: $roomId');
-      }
-      final offerData = roomData['offer'] as Map<String, dynamic>;
-      return RTCSessionDescription(offerData['sdp'], offerData['type']);
-    }
+    final offerData = await _signalingDataSource.fetchOffer(roomId);
+    return RTCSessionDescription(offerData.sdp, offerData.type);
   }
 
   /// Watch for answer
   Stream<RTCSessionDescription?> watchAnswer(String roomId) {
-    if (_signalingDataSource != null) {
-      // New signaling approach - will implement when freezed models are ready
-      throw UnimplementedError(
-        'New signaling not yet implemented. Set AppConfig.useFirestoreSignaling = false',
-      );
-    } else {
-      // Legacy approach - would need to implement polling or stream
-      throw UnimplementedError(
-        'Legacy answer watching not implemented. Enable useFirestoreSignaling.',
-      );
-    }
+    return _signalingDataSource.watchAnswer(roomId).map((answerData) {
+      if (answerData == null) return null;
+      return RTCSessionDescription(answerData.sdp, answerData.type);
+    });
   }
 
   /// Add ICE candidate
@@ -100,15 +54,13 @@ class SignalingService {
     String role,
     RTCIceCandidate candidate,
   ) async {
-    if (_signalingDataSource != null) {
-      // New signaling approach - will implement when freezed models are ready
-      throw UnimplementedError(
-        'New signaling not yet implemented. Set AppConfig.useFirestoreSignaling = false',
-      );
-    } else {
-      // Legacy approach
-      await _legacyDataSource!.addIceCandidate(roomId, role, candidate);
-    }
+    final candidateModel = IceCandidateModel(
+      candidate: candidate.candidate!,
+      sdpMid: candidate.sdpMid!,
+      sdpMLineIndex: candidate.sdpMLineIndex!,
+      timestamp: DateTime.now(),
+    );
+    await _signalingDataSource.addIceCandidate(roomId, role, candidateModel);
   }
 
   /// Watch ICE candidates
@@ -116,34 +68,19 @@ class SignalingService {
     String roomId,
     String role,
   ) {
-    if (_signalingDataSource != null) {
-      // New signaling approach - will implement when freezed models are ready
-      throw UnimplementedError(
-        'New signaling not yet implemented. Set AppConfig.useFirestoreSignaling = false',
-      );
-    } else {
-      // Legacy approach - convert single stream to list stream
-      return _legacyDataSource!.listenIceCandidates(roomId, role).map((candidate) => [candidate]);
-    }
+    return _signalingDataSource.watchIceCandidates(roomId, role).map((candidates) {
+      return candidates.map((candidateModel) {
+        return RTCIceCandidate(
+          candidateModel.candidate,
+          candidateModel.sdpMid,
+          candidateModel.sdpMLineIndex,
+        );
+      }).toList();
+    });
   }
 
   /// Check if room exists
   Future<bool> roomExists(String roomId) async {
-    if (_signalingDataSource != null) {
-      // New signaling approach - will implement when freezed models are ready
-      throw UnimplementedError(
-        'New signaling not yet implemented. Set AppConfig.useFirestoreSignaling = false',
-      );
-    } else {
-      // Legacy approach
-      final roomData = await _legacyDataSource!.getRoomData(roomId);
-      return roomData != null;
-    }
-  }
-
-  /// Generate room ID for legacy approach
-  String _generateLegacyRoomId() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    return List.generate(8, (index) => chars[_random.nextInt(chars.length)]).join();
+    return await _signalingDataSource.roomExists(roomId);
   }
 }

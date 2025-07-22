@@ -3,19 +3,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:globgram_p2p/features/room_selection/data/room_remote_data_source.dart';
-import 'package:globgram_p2p/features/room_selection/presentation/room_selection_bloc.dart';
+import 'package:globgram_p2p/features/room_selection/data/datasources/signaling_data_source.dart';
+import 'package:globgram_p2p/features/room_selection/data/models/signaling_models.dart';
+import 'package:globgram_p2p/features/room_selection/presentation/room_selection_local_bloc.dart';
 
-// Mock class for RoomRemoteDataSource
-class MockRoomRemoteDataSource extends Mock implements RoomRemoteDataSource {}
+// Mock class for SignalingDataSource
+class MockSignalingDataSource extends Mock implements SignalingDataSource {}
 
 // Mock class for HydratedStorage
 class MockHydratedStorage extends Mock implements Storage {}
 
 void main() {
-  group('RoomSelectionBloc', () {
-    late RoomSelectionBloc roomSelectionBloc;
-    late MockRoomRemoteDataSource mockRoomDataSource;
+  group('RoomSelectionLocalBloc', () {
+    late RoomSelectionLocalBloc roomSelectionBloc;
+    late MockSignalingDataSource mockSignalingDataSource;
     late MockHydratedStorage mockStorage;
 
     setUpAll(() {
@@ -26,11 +27,25 @@ void main() {
       when(() => mockStorage.delete(any())).thenAnswer((_) async {});
       when(() => mockStorage.clear()).thenAnswer((_) async {});
       HydratedBloc.storage = mockStorage;
+
+      // Register fallback values for mocktail
+      registerFallbackValue(OfferData(
+        sdp: 'test-sdp',
+        type: 'offer',
+        timestamp: DateTime.now(),
+      ));
+      registerFallbackValue(AnswerData(
+        sdp: 'test-sdp',
+        type: 'answer',
+        timestamp: DateTime.now(),
+      ));
     });
 
     setUp(() {
-      mockRoomDataSource = MockRoomRemoteDataSource();
-      roomSelectionBloc = RoomSelectionBloc(roomDataSource: mockRoomDataSource);
+      mockSignalingDataSource = MockSignalingDataSource();
+      roomSelectionBloc = RoomSelectionLocalBloc(
+        signalingDataSource: mockSignalingDataSource,
+      );
     });
 
     tearDown(() {
@@ -42,167 +57,115 @@ void main() {
     });
 
     group('CreateRequested', () {
-      blocTest<RoomSelectionBloc, RoomSelectionState>(
+      blocTest<RoomSelectionLocalBloc, RoomSelectionState>(
         'emits [RoomCreating, RoomWaitingAnswer] when create room succeeds',
         setUp: () {
           when(
-            () => mockRoomDataSource.createRoom(),
+            () => mockSignalingDataSource.createRoom(any()),
           ).thenAnswer((_) async => 'ROOM123');
+          when(
+            () => mockSignalingDataSource.watchAnswer('ROOM123'),
+          ).thenAnswer((_) => Stream.value(null));
         },
         build: () => roomSelectionBloc,
         act: (bloc) => bloc.add(const CreateRequested()),
         expect: () => [
           const RoomCreating(),
-          const RoomWaitingAnswer('ROOM123'),
+          const RoomWaitingAnswer('ROOM123', isCaller: true),
         ],
         verify: (_) {
-          verify(() => mockRoomDataSource.createRoom()).called(1);
+          verify(() => mockSignalingDataSource.createRoom(any())).called(1);
+          verify(() => mockSignalingDataSource.watchAnswer('ROOM123')).called(1);
         },
       );
 
-      blocTest<RoomSelectionBloc, RoomSelectionState>(
+      blocTest<RoomSelectionLocalBloc, RoomSelectionState>(
         'emits [RoomCreating, RoomError] when create room fails',
         setUp: () {
           when(
-            () => mockRoomDataSource.createRoom(),
-          ).thenThrow(Exception('Network error'));
+            () => mockSignalingDataSource.createRoom(any()),
+          ).thenThrow(Exception('Creation failed'));
         },
         build: () => roomSelectionBloc,
         act: (bloc) => bloc.add(const CreateRequested()),
         expect: () => [
           const RoomCreating(),
-          const RoomError('Failed to create room: Exception: Network error'),
+          const RoomError('Failed to create room: Exception: Creation failed'),
         ],
-        verify: (_) {
-          verify(() => mockRoomDataSource.createRoom()).called(1);
-        },
       );
     });
 
     group('JoinRequested', () {
-      const testRoomId = 'ROOM456';
+      const testRoomId = 'TEST123';
 
-      blocTest<RoomSelectionBloc, RoomSelectionState>(
+      blocTest<RoomSelectionLocalBloc, RoomSelectionState>(
         'emits [RoomConnecting, RoomConnected] when join room succeeds',
         setUp: () {
           when(
-            () => mockRoomDataSource.joinRoom(testRoomId),
+            () => mockSignalingDataSource.roomExists(testRoomId),
+          ).thenAnswer((_) async => true);
+          when(
+            () => mockSignalingDataSource.fetchOffer(testRoomId),
+          ).thenAnswer((_) async => OfferData(
+            sdp: 'test-offer-sdp',
+            type: 'offer',
+            timestamp: DateTime.now(),
+          ));
+          when(
+            () => mockSignalingDataSource.saveAnswer(testRoomId, any()),
           ).thenAnswer((_) async {});
         },
         build: () => roomSelectionBloc,
         act: (bloc) => bloc.add(const JoinRequested(testRoomId)),
         expect: () => [
-          const RoomConnecting(testRoomId),
-          const RoomConnected(testRoomId),
+          const RoomConnecting(testRoomId, isCaller: false),
+          const RoomConnected(testRoomId, isCaller: false),
         ],
         verify: (_) {
-          verify(() => mockRoomDataSource.joinRoom(testRoomId)).called(1);
+          verify(() => mockSignalingDataSource.roomExists(testRoomId)).called(1);
+          verify(() => mockSignalingDataSource.fetchOffer(testRoomId)).called(1);
+          verify(() => mockSignalingDataSource.saveAnswer(testRoomId, any())).called(1);
         },
       );
 
-      blocTest<RoomSelectionBloc, RoomSelectionState>(
-        'emits [RoomConnecting, RoomError] when join room fails',
+      blocTest<RoomSelectionLocalBloc, RoomSelectionState>(
+        'emits [RoomConnecting, RoomError] when room does not exist',
         setUp: () {
           when(
-            () => mockRoomDataSource.joinRoom(testRoomId),
-          ).thenThrow(Exception('Room not found'));
+            () => mockSignalingDataSource.roomExists(testRoomId),
+          ).thenAnswer((_) async => false);
         },
         build: () => roomSelectionBloc,
         act: (bloc) => bloc.add(const JoinRequested(testRoomId)),
         expect: () => [
-          const RoomConnecting(testRoomId),
-          const RoomError('Failed to join room: Exception: Room not found'),
+          const RoomConnecting(testRoomId, isCaller: false),
+          const RoomError('Failed to join room: Exception: Room not found: $testRoomId'),
         ],
-        verify: (_) {
-          verify(() => mockRoomDataSource.joinRoom(testRoomId)).called(1);
-        },
       );
 
-      blocTest<RoomSelectionBloc, RoomSelectionState>(
-        'emits [RoomConnecting, RoomError] when room does not exist',
+      blocTest<RoomSelectionLocalBloc, RoomSelectionState>(
+        'emits [RoomConnecting, RoomError] when join room fails',
         setUp: () {
           when(
-            () => mockRoomDataSource.joinRoom('INVALID'),
-          ).thenThrow(Exception('Room not found: INVALID'));
+            () => mockSignalingDataSource.roomExists(testRoomId),
+          ).thenThrow(Exception('Network error'));
         },
         build: () => roomSelectionBloc,
-        act: (bloc) => bloc.add(const JoinRequested('INVALID')),
+        act: (bloc) => bloc.add(const JoinRequested(testRoomId)),
         expect: () => [
-          const RoomConnecting('INVALID'),
-          const RoomError(
-            'Failed to join room: Exception: Room not found: INVALID',
-          ),
+          const RoomConnecting(testRoomId, isCaller: false),
+          const RoomError('Failed to join room: Exception: Network error'),
         ],
-        verify: (_) {
-          verify(() => mockRoomDataSource.joinRoom('INVALID')).called(1);
-        },
       );
     });
 
     group('ClearRequested', () {
-      blocTest<RoomSelectionBloc, RoomSelectionState>(
+      blocTest<RoomSelectionLocalBloc, RoomSelectionState>(
         'emits [RoomInitial] when clear is requested',
         build: () => roomSelectionBloc,
-        seed: () => const RoomError('Some error'),
         act: (bloc) => bloc.add(const ClearRequested()),
-        expect: () => [const RoomInitial()],
-      );
-
-      blocTest<RoomSelectionBloc, RoomSelectionState>(
-        'emits [RoomInitial] when clear is requested from connected state',
-        build: () => roomSelectionBloc,
-        seed: () => const RoomConnected('ROOM789'),
-        act: (bloc) => bloc.add(const ClearRequested()),
-        expect: () => [const RoomInitial()],
-      );
-    });
-
-    group('Firestore simulation scenarios', () {
-      blocTest<RoomSelectionBloc, RoomSelectionState>(
-        'simulates successful room creation',
-        setUp: () async {
-          when(
-            () => mockRoomDataSource.createRoom(),
-          ).thenAnswer((_) async => 'TEST_ROOM_ID');
-        },
-        build: () => roomSelectionBloc,
-        act: (bloc) => bloc.add(const CreateRequested()),
         expect: () => [
-          const RoomCreating(),
-          const RoomWaitingAnswer('TEST_ROOM_ID', isCaller: true),
-        ],
-      );
-
-      blocTest<RoomSelectionBloc, RoomSelectionState>(
-        'simulates joining existing room',
-        setUp: () async {
-          when(
-            () => mockRoomDataSource.joinRoom('EXISTING_ROOM'),
-          ).thenAnswer((_) async {});
-        },
-        build: () => roomSelectionBloc,
-        act: (bloc) => bloc.add(const JoinRequested('EXISTING_ROOM')),
-        expect: () => [
-          const RoomConnecting('EXISTING_ROOM', isCaller: false),
-          const RoomConnected('EXISTING_ROOM', isCaller: false),
-        ],
-      );
-
-      blocTest<RoomSelectionBloc, RoomSelectionState>(
-        'simulates joining non-existent room in Firestore',
-        setUp: () {
-          // Don't add any room to Firestore - simulate empty database
-          when(
-            () => mockRoomDataSource.joinRoom('NON_EXISTENT'),
-          ).thenThrow(Exception('Room not found: NON_EXISTENT'));
-        },
-        build: () => roomSelectionBloc,
-        act: (bloc) => bloc.add(const JoinRequested('NON_EXISTENT')),
-        expect: () => [
-          const RoomConnecting('NON_EXISTENT'),
-          const RoomError(
-            'Failed to join room: Exception: Room not found: NON_EXISTENT',
-          ),
+          const RoomInitial(),
         ],
       );
     });

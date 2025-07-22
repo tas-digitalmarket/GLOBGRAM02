@@ -1,53 +1,139 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:globgram_p2p/features/room_selection/data/models/signaling_models.dart';
 import 'package:globgram_p2p/features/room_selection/data/datasources/signaling_data_source.dart';
 
+/// Internal memory model for room data
+class RoomMemoryModel {
+  OfferData? offer;
+  AnswerData? answer;
+  final List<IceCandidateModel> callerCandidates = [];
+  final List<IceCandidateModel> calleeCandidates = [];
+  final DateTime createdAt = DateTime.now();
+  bool connected = false;
+  bool sdpCleared = false;
+
+  RoomMemoryModel({this.offer, this.answer});
+}
+
 /// In-memory implementation of SignalingDataSource for testing and fallback
 class InMemorySignalingDataSource implements SignalingDataSource {
-  final Map<String, Map<String, dynamic>> _rooms = {};
-  final Map<String, StreamController<OfferData?>> _offerControllers = {};
+  final Map<String, RoomMemoryModel> _rooms = {};
   final Map<String, StreamController<AnswerData?>> _answerControllers = {};
-  final Map<String, StreamController<List<IceCandidateModel>>>
-  _candidateControllers = {};
+  final Map<String, StreamController<List<IceCandidateModel>>> _candidateControllers = {};
+  final Random _random = Random();
 
-  @override
-  Future<void> createRoom(String roomId) async {
-    _rooms[roomId] = {
-      'createdAt': DateTime.now(),
-      'status': 'waiting',
-      'callerConnected': true,
-      'calleeConnected': false,
-      'offers': <OfferData>[],
-      'answers': <AnswerData>[],
-      'callerCandidates': <IceCandidateModel>[],
-      'calleeCandidates': <IceCandidateModel>[],
-    };
+  /// Generate a simple room ID
+  String _generateRoomId() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    return List.generate(
+      8,
+      (index) => chars[_random.nextInt(chars.length)],
+    ).join();
   }
 
   @override
-  Future<bool> joinRoom(String roomId) async {
-    if (!_rooms.containsKey(roomId)) {
+  Future<String> createRoom(OfferData offer) async {
+    final roomId = _generateRoomId();
+    _rooms[roomId] = RoomMemoryModel(offer: offer);
+    return roomId;
+  }
+
+  @override
+  Future<void> saveAnswer(String roomId, AnswerData answer) async {
+    final room = _rooms[roomId];
+    if (room == null) {
+      throw Exception('Room $roomId does not exist');
+    }
+    
+    room.answer = answer;
+    
+    // Notify answer watchers
+    _answerControllers[roomId]?.add(answer);
+  }
+
+  @override
+  Stream<AnswerData?> watchAnswer(String roomId) {
+    if (!_answerControllers.containsKey(roomId)) {
+      _answerControllers[roomId] = StreamController<AnswerData?>.broadcast();
+    }
+    
+    // Emit current answer if exists
+    final room = _rooms[roomId];
+    if (room?.answer != null) {
+      Future.microtask(() => _answerControllers[roomId]?.add(room!.answer));
+    }
+    
+    return _answerControllers[roomId]!.stream;
+  }
+
+  @override
+  Future<OfferData> fetchOffer(String roomId) async {
+    final room = _rooms[roomId];
+    if (room == null) {
+      throw Exception('Room $roomId does not exist');
+    }
+    if (room.offer == null) {
+      throw Exception('No offer found for room $roomId');
+    }
+    return room.offer!;
+  }
+
+  @override
+  Future<void> addIceCandidate(
+    String roomId,
+    String role,
+    IceCandidateModel candidate,
+  ) async {
+    final room = _rooms[roomId];
+    if (room == null) {
       throw Exception('Room $roomId does not exist');
     }
 
-    final room = _rooms[roomId]!;
-    if (room['calleeConnected'] == true) {
-      return false; // Room is full
+    // Don't add candidates if room is connected
+    if (room.connected) {
+      return;
     }
 
-    room['calleeConnected'] = true;
-    room['status'] = 'connecting';
-    return true;
+    final candidates = role == 'caller' 
+        ? room.callerCandidates 
+        : room.calleeCandidates;
+    candidates.add(candidate);
+
+    // Notify watchers for this role
+    final controllerKey = '${roomId}_$role';
+    _candidateControllers[controllerKey]?.add(List.from(candidates));
   }
 
   @override
-  Future<void> leaveRoom(String roomId) async {
-    _rooms.remove(roomId);
-    _offerControllers[roomId]?.close();
-    _offerControllers.remove(roomId);
-    _answerControllers[roomId]?.close();
-    _answerControllers.remove(roomId);
-    _candidateControllers.remove(roomId);
+  Stream<List<IceCandidateModel>> watchIceCandidates(
+    String roomId,
+    String role,
+  ) {
+    final controllerKey = '${roomId}_$role';
+    if (!_candidateControllers.containsKey(controllerKey)) {
+      _candidateControllers[controllerKey] = 
+          StreamController<List<IceCandidateModel>>.broadcast();
+    }
+
+    // Emit current candidates if any exist
+    final room = _rooms[roomId];
+    if (room != null) {
+      final candidates = role == 'caller' 
+          ? room.callerCandidates 
+          : room.calleeCandidates;
+      
+      // If room is connected, don't emit candidates
+      if (room.connected) {
+        Future.microtask(() => 
+            _candidateControllers[controllerKey]?.add([]));
+      } else if (candidates.isNotEmpty) {
+        Future.microtask(() => 
+            _candidateControllers[controllerKey]?.add(List.from(candidates)));
+      }
+    }
+
+    return _candidateControllers[controllerKey]!.stream;
   }
 
   @override
@@ -56,94 +142,45 @@ class InMemorySignalingDataSource implements SignalingDataSource {
   }
 
   @override
-  Future<void> sendOffer(String roomId, OfferData offer) async {
-    if (!_rooms.containsKey(roomId)) {
-      throw Exception('Room $roomId does not exist');
-    }
-
-    final offers = _rooms[roomId]!['offers'] as List<OfferData>;
-    offers.add(offer);
-
-    // Notify listeners
-    _offerControllers[roomId]?.add(offer);
-  }
-
-  @override
-  Stream<OfferData?> listenForOffer(String roomId) {
-    if (!_offerControllers.containsKey(roomId)) {
-      _offerControllers[roomId] = StreamController<OfferData?>.broadcast();
-    }
-    return _offerControllers[roomId]!.stream;
-  }
-
-  @override
-  Future<void> sendAnswer(String roomId, AnswerData answer) async {
-    if (!_rooms.containsKey(roomId)) {
-      throw Exception('Room $roomId does not exist');
-    }
-
-    final answers = _rooms[roomId]!['answers'] as List<AnswerData>;
-    answers.add(answer);
-
-    // Notify listeners
-    _answerControllers[roomId]?.add(answer);
-  }
-
-  @override
-  Stream<AnswerData?> listenForAnswer(String roomId) {
-    if (!_answerControllers.containsKey(roomId)) {
-      _answerControllers[roomId] = StreamController<AnswerData?>.broadcast();
-    }
-    return _answerControllers[roomId]!.stream;
-  }
-
-  @override
-  Future<void> addIceCandidate(
-    String roomId,
-    IceCandidateModel candidate,
-    bool isFromCaller,
-  ) async {
-    if (!_rooms.containsKey(roomId)) {
-      throw Exception('Room $roomId does not exist');
-    }
-
-    final candidatesKey = isFromCaller
-        ? 'callerCandidates'
-        : 'calleeCandidates';
-    final candidates =
-        _rooms[roomId]![candidatesKey] as List<IceCandidateModel>;
-    candidates.add(candidate);
-
-    // Notify listeners for the opposite role
-    final listenerKey = '${roomId}_${!isFromCaller}';
-    if (_candidateControllers.containsKey(listenerKey)) {
-      _candidateControllers[listenerKey]!.add(List.from(candidates));
+  Future<void> clearSdpBodies(String roomId) async {
+    final room = _rooms[roomId];
+    if (room != null) {
+      room.sdpCleared = true;
+      room.offer = null;
+      room.answer = null;
     }
   }
 
   @override
-  Stream<List<IceCandidateModel>> listenForIceCandidates(
-    String roomId,
-    bool isForCaller,
-  ) {
-    final listenerKey = '${roomId}_$isForCaller';
-    if (!_candidateControllers.containsKey(listenerKey)) {
-      _candidateControllers[listenerKey] =
-          StreamController<List<IceCandidateModel>>.broadcast();
+  Future<void> markRoomConnected(String roomId) async {
+    final room = _rooms[roomId];
+    if (room != null) {
+      room.connected = true;
     }
-    return _candidateControllers[listenerKey]!.stream;
   }
 
   @override
+  Future<void> cleanupRoom(String roomId) async {
+    await clearRoom(roomId);
+  }
+
+  /// Clear a specific room and complete its streams
   Future<void> clearRoom(String roomId) async {
-    await leaveRoom(roomId);
+    _rooms.remove(roomId);
+    
+    // Complete and remove answer controller
+    _answerControllers[roomId]?.close();
+    _answerControllers.remove(roomId);
+    
+    // Complete and remove candidate controllers
+    _candidateControllers['${roomId}_caller']?.close();
+    _candidateControllers['${roomId}_callee']?.close();
+    _candidateControllers.remove('${roomId}_caller');
+    _candidateControllers.remove('${roomId}_callee');
   }
 
   /// Dispose all resources
   void dispose() {
-    for (final controller in _offerControllers.values) {
-      controller.close();
-    }
     for (final controller in _answerControllers.values) {
       controller.close();
     }
@@ -151,7 +188,6 @@ class InMemorySignalingDataSource implements SignalingDataSource {
       controller.close();
     }
 
-    _offerControllers.clear();
     _answerControllers.clear();
     _candidateControllers.clear();
     _rooms.clear();

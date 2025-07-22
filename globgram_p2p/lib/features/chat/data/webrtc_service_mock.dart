@@ -14,21 +14,71 @@ class WebRTCServiceMock implements WebRTCService {
   final StreamController<ConnectionState> _connectionStateController =
       StreamController<ConnectionState>.broadcast();
 
-  @override
-  Stream<ChatMessage> get messageStream => _messageController.stream;
-  @override
-  Stream<ConnectionState> get connectionStateStream =>
-      _connectionStateController.stream;
+  // TODO: Mock media stream controllers - uncomment when implementing media features
+  // final StreamController<MediaStream> _localStreamController =
+  //     StreamController<MediaStream>.broadcast();
+  // final StreamController<MediaStream> _remoteStreamController =
+  //     StreamController<MediaStream>.broadcast();
 
   @override
-  bool get isConnected => _connectionState == ConnectionState.connected;
+  Stream<ChatMessage> get messages$ => _messageController.stream;
+  @override
+  Stream<ConnectionState> get connectionState$ =>
+      _connectionStateController.stream;
+
+  // TODO: Mock media stream getters - uncomment when implementing media features
+  // @override
+  // Stream<MediaStream> get localStream$ => _localStreamController.stream;
+  // @override
+  // Stream<MediaStream> get remoteStream$ => _remoteStreamController.stream;
+
+  @override
+  Future<void> createConnection({required bool isCaller, required String roomId}) async {
+    if (isCaller) {
+      await _initAsCaller(roomId);
+    } else {
+      await _initAsCallee(roomId);
+    }
+  }
+
+  @override
+  Future<void> sendText(String text) async {
+    await _sendMessage(text);
+  }
+
+  // TODO: Mock media methods - uncomment when implementing media features
+  /*
+  @override
+  Future<void> prepareMedia({bool audio = true, bool video = false}) async {
+    _logger.i('Mock: Preparing media with audio=$audio, video=$video');
+    // Simulate media preparation delay
+    await Future.delayed(const Duration(milliseconds: 500));
+    _logger.i('Mock: Media prepared successfully');
+  }
+
+  @override
+  Future<void> stopMedia() async {
+    _logger.i('Mock: Stopping media');
+    await Future.delayed(const Duration(milliseconds: 100));
+    _logger.i('Mock: Media stopped');
+  }
+
+  @override
+  Future<void> toggleAudio() async {
+    _logger.i('Mock: Toggling audio');
+  }
+
+  @override
+  Future<void> toggleVideo() async {
+    _logger.i('Mock: Toggling video');
+  }
+  */
   ConnectionState _connectionState = ConnectionState.disconnected;
 
   bool _isInitialized = false;
 
   /// Initialize WebRTC as the caller (creates offer)
-  @override
-  Future<void> initAsCaller(String roomId) async {
+  Future<void> _initAsCaller(String roomId) async {
     try {
       _logger.i('Initializing WebRTC as caller for room: $roomId (MOCK MODE)');
 
@@ -57,8 +107,7 @@ class WebRTCServiceMock implements WebRTCService {
   }
 
   /// Initialize WebRTC as the callee (receives offer)
-  @override
-  Future<void> initAsCallee(String roomId) async {
+  Future<void> _initAsCallee(String roomId) async {
     try {
       _logger.i('Initializing WebRTC as callee for room: $roomId (MOCK MODE)');
 
@@ -90,8 +139,7 @@ class WebRTCServiceMock implements WebRTCService {
   }
 
   /// Send a text message through the data channel
-  @override
-  Future<void> sendMessage(String text) async {
+  Future<void> _sendMessage(String text) async {
     if (!_isInitialized) {
       throw StateError('WebRTC service not initialized');
     }
@@ -173,6 +221,16 @@ class WebRTCServiceMock implements WebRTCService {
     return "mock_local_description";
   }
 
+  /// Get debug information about peer connection
+  @override
+  String getDebugInfo() {
+    if (_peerConnection == null) {
+      return 'PeerConnection: null (MOCK MODE)';
+    }
+    
+    return 'PeerConnection (MOCK) - Signaling: stable, ICE: connected';
+  }
+
   /// Dispose of all resources
   @override
   Future<void> dispose() async {
@@ -185,6 +243,10 @@ class WebRTCServiceMock implements WebRTCService {
       // Close stream controllers
       await _messageController.close();
       await _connectionStateController.close();
+
+      // TODO: Close mock media stream controllers when implementing media features
+      // await _localStreamController.close();
+      // await _remoteStreamController.close();
 
       _isInitialized = false;
       _updateConnectionState(ConnectionState.disconnected);

@@ -1,338 +1,238 @@
 import 'dart:async';
-import 'package:equatable/equatable.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:logger/logger.dart';
 import 'package:globgram_p2p/features/chat/domain/webrtc_service.dart';
 import 'package:globgram_p2p/features/chat/domain/chat_message.dart';
+import 'package:globgram_p2p/features/room_selection/data/datasources/signaling_data_source.dart';
+import 'package:globgram_p2p/features/chat/presentation/chat_state.dart';
+import 'package:globgram_p2p/features/chat/presentation/chat_event.dart';
 
-// Events
-abstract class ChatEvent extends Equatable {
-  const ChatEvent();
-
-  @override
-  List<Object?> get props => [];
-}
-
-class MessageSent extends ChatEvent {
-  final String text;
-
-  const MessageSent(this.text);
-
-  @override
-  List<Object?> get props => [text];
-
-  @override
-  String toString() => 'MessageSent { text: $text }';
-}
-
-class MessageReceived extends ChatEvent {
-  final ChatMessage message;
-
-  const MessageReceived(this.message);
-
-  @override
-  List<Object?> get props => [message];
-
-  @override
-  String toString() => 'MessageReceived { message: $message }';
-}
-
-class ConnectionStateChanged extends ChatEvent {
-  final ConnectionState status;
-
-  const ConnectionStateChanged(this.status);
-
-  @override
-  List<Object?> get props => [status];
-
-  @override
-  String toString() => 'ConnectionStateChanged { status: $status }';
-}
-
-class ChatInitialized extends ChatEvent {
-  const ChatInitialized();
-
-  @override
-  String toString() => 'ChatInitialized';
-}
-
-class ChatDisposed extends ChatEvent {
-  const ChatDisposed();
-
-  @override
-  String toString() => 'ChatDisposed';
-}
-
-// States
-abstract class ChatState extends Equatable {
-  const ChatState();
-
-  @override
-  List<Object?> get props => [];
-}
-
-class ChatInitial extends ChatState {
-  const ChatInitial();
-
-  @override
-  String toString() => 'ChatInitial';
-}
-
-class ChatConnecting extends ChatState {
-  const ChatConnecting();
-
-  @override
-  String toString() => 'ChatConnecting';
-}
-
-class ChatReady extends ChatState {
-  final List<ChatMessage> history;
-
-  const ChatReady(this.history);
-
-  @override
-  List<Object?> get props => [history];
-
-  @override
-  String toString() => 'ChatReady { messages: ${history.length} }';
-
-  ChatReady copyWith({List<ChatMessage>? history}) {
-    return ChatReady(history ?? this.history);
-  }
-}
-
-class ChatError extends ChatState {
-  final String message;
-
-  const ChatError(this.message);
-
-  @override
-  List<Object?> get props => [message];
-
-  @override
-  String toString() => 'ChatError { message: $message }';
-}
-
-// ChatBloc
 class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
   static final Logger _logger = Logger();
   final WebRTCService _webrtcService;
-  late StreamSubscription<ChatMessage> _messageSubscription;
-  late StreamSubscription<ConnectionState> _connectionSubscription;
+  final SignalingDataSource _signalingDataSource;
 
-  ChatBloc(this._webrtcService) : super(const ChatInitial()) {
-    // Register event handlers
-    on<ChatInitialized>(_onChatInitialized);
-    on<MessageSent>(_onMessageSent);
-    on<MessageReceived>(_onMessageReceived);
-    on<ConnectionStateChanged>(_onConnectionStateChanged);
-    on<ChatDisposed>(_onChatDisposed);
+  // Hydration version for migration management
+  static const int _currentStorageVersion = 2;
+  static const String _versionKey = 'storage_version';
 
-    // Initialize the chat
-    add(const ChatInitialized());
+  // Stream subscriptions
+  StreamSubscription<ChatMessage>? _messageSubscription;
+  StreamSubscription<ConnectionState>? _connectionSubscription;
+
+  ChatBloc(this._webrtcService, this._signalingDataSource) 
+      : super(const ChatState.initial()) {
+    on<ChatInitializeConnection>(_onInitializeConnection);
+    on<ChatSendMessage>(_onSendMessage);
+    on<ChatMessageReceived>(_onMessageReceived);
+    on<ChatConnectionStateChanged>(_onConnectionStateChanged);
+    on<ChatErrorOccurred>(_onErrorOccurred);
+    on<ChatDispose>(_onDispose);
   }
 
-  // Event Handlers
-  Future<void> _onChatInitialized(
-    ChatInitialized event,
+  Future<void> _onInitializeConnection(
+    ChatInitializeConnection event,
     Emitter<ChatState> emit,
   ) async {
     try {
-      _logger.i('Initializing ChatBloc');
+      _logger.i('Initializing chat connection for room: ${event.roomId}');
+      
+      emit(ChatState.connecting(
+        roomId: event.roomId,
+        isCaller: event.isCaller,
+      ));
 
-      // Set up stream subscriptions
-      _messageSubscription = _webrtcService.messageStream.listen(
-        (message) {
-          add(MessageReceived(message));
-        },
-        onError: (error) {
-          _logger.e('Message stream error: $error');
-          add(const ConnectionStateChanged(ConnectionState.failed));
-        },
+      // Subscribe to WebRTC service streams
+      _messageSubscription = _webrtcService.messages$.listen(
+        (message) => add(ChatEvent.messageReceived(message: message)),
+        onError: (error) => add(ChatEvent.errorOccurred(error: error.toString())),
       );
 
-      _connectionSubscription = _webrtcService.connectionStateStream.listen(
-        (connectionState) {
-          add(ConnectionStateChanged(connectionState));
-        },
-        onError: (error) {
-          _logger.e('Connection stream error: $error');
-          add(const ConnectionStateChanged(ConnectionState.failed));
-        },
+      _connectionSubscription = _webrtcService.connectionState$.listen(
+        (connectionState) => add(ChatEvent.connectionStateChanged(connectionState: connectionState)),
+        onError: (error) => add(ChatEvent.errorOccurred(error: error.toString())),
       );
 
-      // Start with connecting state if not already connected
-      if (_webrtcService.isConnected) {
-        emit(ChatReady(_getCurrentMessages()));
-      } else {
-        emit(const ChatConnecting());
-      }
+      // Initialize WebRTC connection
+      await _webrtcService.createConnection(
+        isCaller: event.isCaller,
+        roomId: event.roomId,
+      );
 
-      _logger.i('ChatBloc initialized successfully');
+      _logger.i('Chat connection initialized successfully');
     } catch (error) {
-      _logger.e('Failed to initialize ChatBloc: $error');
-      emit(ChatError('Failed to initialize chat: $error'));
+      _logger.e('Failed to initialize connection: $error');
+      emit(ChatState.error(message: 'Failed to initialize connection: $error'));
     }
   }
 
-  Future<void> _onMessageSent(
-    MessageSent event,
+  Future<void> _onSendMessage(
+    ChatSendMessage event,
     Emitter<ChatState> emit,
   ) async {
     try {
       _logger.d('Sending message: ${event.text}');
-
+      
       // Send message through WebRTC service
-      await _webrtcService.sendMessage(event.text);
-
-      // Note: The message will be added to history automatically
-      // through the WebRTC service's message stream when sendMessage
-      // adds it to the stream controller
-
+      await _webrtcService.sendText(event.text);
+      
       _logger.d('Message sent successfully');
     } catch (error) {
       _logger.e('Failed to send message: $error');
-      emit(ChatError('Failed to send message: $error'));
+      emit(ChatState.error(message: 'Failed to send message: $error'));
     }
   }
 
   Future<void> _onMessageReceived(
-    MessageReceived event,
+    ChatMessageReceived event,
     Emitter<ChatState> emit,
   ) async {
     try {
-      _logger.d('Message received: ${event.message.text}');
-
+      _logger.d('Message received: ${event.message}');
+      
       final currentState = state;
-      if (currentState is ChatReady) {
-        // Add new message to history
-        final updatedHistory = List<ChatMessage>.from(currentState.history)
-          ..add(event.message);
-
-        emit(ChatReady(updatedHistory));
+      
+      if (currentState is ChatStateConnected) {
+        // Add new message to existing messages
+        final updatedMessages = List<ChatMessage>.from(currentState.messages)
+          ..add(event.message as ChatMessage);
+        
+        emit(ChatState.connected(
+          roomId: currentState.roomId,
+          isCaller: currentState.isCaller,
+          messages: updatedMessages,
+        ));
       } else {
-        // If not in ready state, create new ready state with this message
-        emit(ChatReady([event.message]));
+        _logger.w('Received message while not in connected state: $currentState');
       }
-
-      _logger.d('Message added to history');
     } catch (error) {
       _logger.e('Failed to handle received message: $error');
-      emit(ChatError('Failed to handle received message: $error'));
+      emit(ChatState.error(message: 'Failed to handle received message: $error'));
     }
   }
 
   Future<void> _onConnectionStateChanged(
-    ConnectionStateChanged event,
+    ChatConnectionStateChanged event,
     Emitter<ChatState> emit,
   ) async {
     try {
-      _logger.i('Connection state changed to: ${event.status}');
-
-      switch (event.status) {
-        case ConnectionState.disconnected:
-          emit(const ChatInitial());
-          break;
-        case ConnectionState.connecting:
-          emit(const ChatConnecting());
-          break;
+      _logger.i('Connection state changed to: ${event.connectionState}');
+      
+      final currentState = state;
+      final connectionState = event.connectionState as ConnectionState;
+      
+      switch (connectionState) {
         case ConnectionState.connected:
-          // Preserve message history when becoming ready
-          final currentMessages = _getCurrentMessages();
-          emit(ChatReady(currentMessages));
+          if (currentState is ChatStateConnecting) {
+            emit(ChatState.connected(
+              roomId: currentState.roomId,
+              isCaller: currentState.isCaller,
+              messages: const [],
+            ));
+          }
+          break;
+        case ConnectionState.disconnected:
+          emit(const ChatState.disconnected());
           break;
         case ConnectionState.failed:
-          emit(const ChatError('Connection failed'));
+          emit(const ChatState.error(message: 'Connection failed'));
+          break;
+        case ConnectionState.connecting:
+          // Keep current connecting state
           break;
       }
     } catch (error) {
       _logger.e('Failed to handle connection state change: $error');
-      emit(ChatError('Failed to handle connection state change: $error'));
+      emit(ChatState.error(message: 'Connection state error: $error'));
     }
   }
 
-  Future<void> _onChatDisposed(
-    ChatDisposed event,
+  Future<void> _onErrorOccurred(
+    ChatErrorOccurred event,
+    Emitter<ChatState> emit,
+  ) async {
+    _logger.e('Chat error occurred: ${event.error}');
+    emit(ChatState.error(message: event.error));
+  }
+
+  Future<void> _onDispose(
+    ChatDispose event,
     Emitter<ChatState> emit,
   ) async {
     try {
-      _logger.i('Disposing ChatBloc');
-
-      // Cancel subscriptions
-      await _messageSubscription.cancel();
-      await _connectionSubscription.cancel();
-
-      // Dispose WebRTC service
+      _logger.i('Disposing chat');
+      
+      await _messageSubscription?.cancel();
+      await _connectionSubscription?.cancel();
+      
       await _webrtcService.dispose();
-
-      emit(const ChatInitial());
-
-      _logger.i('ChatBloc disposed successfully');
+      
+      emit(const ChatState.disconnected());
+      
+      _logger.i('Chat disposed successfully');
     } catch (error) {
-      _logger.e('Error disposing ChatBloc: $error');
+      _logger.e('Error disposing chat: $error');
     }
   }
 
-  // Helper Methods
-  List<ChatMessage> _getCurrentMessages() {
-    final currentState = state;
-    if (currentState is ChatReady) {
-      return currentState.history;
-    }
-    return [];
-  }
-
-  // Public Methods
+  // Helper method to send message from UI
   void sendMessage(String text) {
-    if (text.trim().isNotEmpty) {
-      add(MessageSent(text.trim()));
-    }
+    add(ChatEvent.sendMessage(text: text));
   }
 
-  void initializeConnection(String roomId, {bool asCaller = true}) async {
+  // Helper method to initialize connection from UI
+  void initializeConnection({required String roomId, required bool isCaller}) {
+    add(ChatEvent.initializeConnection(roomId: roomId, isCaller: isCaller));
+  }
+
+  /// Clear stored hydrated state (for manual migration)
+  /// This method should be called when you want to manually reset all persisted chat data
+  static Future<void> clearHydratedState() async {
     try {
-      _logger.i(
-        '[🎯] ChatBloc.initializeConnection - roomId: $roomId, asCaller: $asCaller',
-      );
-      if (asCaller) {
-        _logger.i('[🎯] Initializing as CALLER (room creator)');
-        await _webrtcService.initAsCaller(roomId);
-      } else {
-        _logger.i('[🎯] Initializing as CALLEE (room joiner)');
-        await _webrtcService.initAsCallee(roomId);
-      }
-      _logger.i('[🎯] WebRTC initialization completed successfully');
+      final storage = HydratedBloc.storage;
+      await storage.delete('ChatBloc');
+      _logger.i('ChatBloc hydrated state cleared successfully');
     } catch (error) {
-      _logger.e('[🐛] WebRTC initialization failed: $error');
-      add(const ConnectionStateChanged(ConnectionState.failed));
+      _logger.e('Error clearing ChatBloc hydrated state: $error');
     }
   }
 
-  void disposeChat() {
-    add(const ChatDisposed());
-  }
-
-  // HydratedBloc Implementation
   @override
   ChatState? fromJson(Map<String, dynamic> json) {
     try {
+      // Check storage version for migration
+      final storedVersion = json[_versionKey] as int?;
+      if (storedVersion == null || storedVersion < _currentStorageVersion) {
+        _logger.i('Storage version mismatch (stored: $storedVersion, current: $_currentStorageVersion). Clearing old state.');
+        // Return initial state for migration - old messages will be cleared
+        return const ChatState.initial();
+      }
+
       final type = json['type'] as String?;
+      if (type == null) return null;
+
       switch (type) {
-        case 'ChatInitial':
-          return const ChatInitial();
-        case 'ChatConnecting':
-          return const ChatConnecting();
-        case 'ChatReady':
-          final historyJson = json['history'] as List<dynamic>?;
-          final history =
-              historyJson
-                  ?.map((e) => ChatMessage.fromJson(e as Map<String, dynamic>))
-                  .toList() ??
-              [];
-          return ChatReady(history);
-        case 'ChatError':
-          final message = json['message'] as String? ?? 'Unknown error';
-          return ChatError(message);
+        case 'initial':
+          return const ChatState.initial();
+        case 'connecting':
+          return ChatState.connecting(
+            roomId: json['roomId'] as String,
+            isCaller: json['isCaller'] as bool,
+          );
+        case 'connected':
+          final messagesJson = json['messages'] as List<dynamic>? ?? [];
+          final messages = messagesJson
+              .map((e) => ChatMessage.fromJson(e as Map<String, dynamic>))
+              .toList();
+          return ChatState.connected(
+            roomId: json['roomId'] as String,
+            isCaller: json['isCaller'] as bool,
+            messages: messages,
+          );
+        case 'error':
+          return ChatState.error(message: json['message'] as String);
+        case 'disconnected':
+          return const ChatState.disconnected();
         default:
           _logger.w('Unknown state type: $type');
           return null;
@@ -346,19 +246,29 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
   @override
   Map<String, dynamic>? toJson(ChatState state) {
     try {
-      return switch (state) {
-        ChatInitial _ => {'type': 'ChatInitial'},
-        ChatConnecting _ => {'type': 'ChatConnecting'},
-        ChatReady readyState => {
-          'type': 'ChatReady',
-          'history': readyState.history.map((e) => e.toJson()).toList(),
+      final baseJson = state.when(
+        initial: () => {'type': 'initial'},
+        connecting: (roomId, isCaller) => {
+          'type': 'connecting',
+          'roomId': roomId,
+          'isCaller': isCaller,
         },
-        ChatError errorState => {
-          'type': 'ChatError',
-          'message': errorState.message,
+        connected: (roomId, isCaller, messages) => {
+          'type': 'connected',
+          'roomId': roomId,
+          'isCaller': isCaller,
+          'messages': messages.map((e) => e.toJson()).toList(),
         },
-        _ => null,
-      };
+        error: (message) => {
+          'type': 'error',
+          'message': message,
+        },
+        disconnected: () => {'type': 'disconnected'},
+      );
+      
+      // Add storage version for migration management
+      baseJson[_versionKey] = _currentStorageVersion;
+      return baseJson;
     } catch (error) {
       _logger.e('Error serializing ChatState: $error');
       return null;
@@ -367,10 +277,9 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
 
   @override
   Future<void> close() async {
-    // Clean up subscriptions before closing
     try {
-      await _messageSubscription.cancel();
-      await _connectionSubscription.cancel();
+      await _messageSubscription?.cancel();
+      await _connectionSubscription?.cancel();
     } catch (error) {
       _logger.e('Error cleaning up subscriptions: $error');
     }
