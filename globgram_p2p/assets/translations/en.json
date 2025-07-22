@@ -54,7 +54,13 @@
   "common": {
     "dismiss": "Dismiss",
     "welcome": "Welcome to GlobGram P2P",
-    "subtitle": "Create a new room or join an existing one"
+    "subtitle": "Create a new room or join an existing one",
+    "room": "Room",
+    "caller": "Caller",
+    "joiner": "Joiner"
+  },
+  "debug": {
+    "webrtc_connection": "Debug WebRTC Connection"
   },
   "language": {
     "toggle": "Toggle Language"

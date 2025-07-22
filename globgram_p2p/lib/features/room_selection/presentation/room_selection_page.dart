@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -39,19 +40,20 @@ class _RoomSelectionViewState extends State<RoomSelectionView> {
         title: Text('room.selection.title'.tr()),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          IconButton(
-            onPressed: () {
-              // Toggle between English and Farsi
-              final currentLocale = context.locale;
-              if (currentLocale.languageCode == 'en') {
-                context.setLocale(const Locale('fa'));
-              } else {
-                context.setLocale(const Locale('en'));
-              }
-            },
-            icon: const Icon(Icons.language),
-            tooltip: 'language.toggle'.tr(),
-          ),
+          if (kDebugMode)
+            IconButton(
+              onPressed: () {
+                // Toggle between English and Farsi
+                final currentLocale = context.locale;
+                if (currentLocale.languageCode == 'en') {
+                  context.setLocale(const Locale('fa'));
+                } else {
+                  context.setLocale(const Locale('en'));
+                }
+              },
+              icon: const Icon(Icons.language),
+              tooltip: 'language.toggle'.tr(),
+            ),
         ],
       ),
       body: BlocListener<RoomSelectionLocalBloc, RoomSelectionState>(

@@ -20,50 +20,86 @@ This application follows Clean Architecture principles with WebRTC P2P communica
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              GlobGram P2P Architecture                        │
+│                          GlobGram P2P Architecture                           │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-   User A Device                                              User B Device
-┌─────────────────┐                                        ┌─────────────────┐
-│   UI Layer      │                                        │   UI Layer      │
-│ ┌─────────────┐ │                                        │ ┌─────────────┐ │
-│ │ ChatPage    │ │                                        │ │ ChatPage    │ │
-│ │ MessageList │ │                                        │ │ MessageList │ │
-│ │ TextInput   │ │                                        │ │ TextInput   │ │
-│ └─────────────┘ │                                        │ └─────────────┘ │
-│        │        │                                        │        │        │
-│ ┌─────────────┐ │                                        │ ┌─────────────┐ │
-│ │  ChatBloc   │ │                                        │ │  ChatBloc   │ │
-│ │ (BlocState) │ │                                        │ │ (BlocState) │ │
-│ └─────────────┘ │                                        │ └─────────────┘ │
-│        │        │                                        │        │        │
-│ ┌─────────────┐ │                                        │ ┌─────────────┐ │
-│ │WebRTCService│ │     ┌─────────────────────────┐        │ │WebRTCService│ │
-│ │             │ │────▶│    Firestore Signaling  │◀───────│ │             │ │
-│ │ PeerConn    │ │     │                         │        │ │ PeerConn    │ │
-│ │ DataChannel │ │     │ ┌─────────────────────┐ │        │ │ DataChannel │ │
-│ └─────────────┘ │     │ │ /rooms/{roomId}/    │ │        │ └─────────────┘ │
-│        │        │     │ │ ├─ offer             │ │        │        │        │
-│        │        │     │ │ ├─ answer            │ │        │        │        │
-│        │        │     │ │ └─ iceCandidates/    │ │        │        │        │
-│        │        │     │ └─────────────────────┘ │        │        │        │
-│        │        │     └─────────────────────────┘        │        │        │
-│        │        │                                        │        │        │
-│ ┌──────▼──────┐ │                                        │ ┌──────▼──────┐ │
-│ │             │ │◀═══════════════════════════════════════▶│ │             │ │
-│ │ WebRTC P2P  │ │     Direct Data Channel Connection     │ │ WebRTC P2P  │ │
-│ │ Connection  │ │          (Encrypted Messages)          │ │ Connection  │ │
-│ │             │ │                                        │ │             │ │
-│ └─────────────┘ │                                        │ └─────────────┘ │
-└─────────────────┘                                        └─────────────────┘
+             User Interface Layer
+      ┌─────────────────────────────────┐
+      │         Flutter UI              │
+      │  ┌───────────┐  ┌─────────────┐ │
+      │  │ ChatPage  │  │ RoomSelect  │ │
+      │  │ Widgets   │  │ Page        │ │
+      │  └─────┬─────┘  └─────────────┘ │
+      └────────┼─────────────────────────┘
+               │ BlocBuilder / BlocListener
+               ▼
+      ┌─────────────────────────────────┐
+      │      Presentation Layer         │
+      │  ┌─────────────────────────────┐ │
+      │  │        ChatBloc             │ │
+      │  │   (State Management)        │ │
+      │  │  ┌─────────┐ ┌────────────┐ │ │
+      │  │  │ Events  │ │   States   │ │ │
+      │  │  └─────────┘ └────────────┘ │ │
+      │  └──────────┬──────────────────┘ │
+      └─────────────┼─────────────────────┘
+                    │ calls
+                    ▼
+      ┌─────────────────────────────────┐
+      │       Domain Layer              │
+      │  ┌─────────────────────────────┐ │
+      │  │     WebRTCService           │ │
+      │  │    (Abstract Interface)     │ │
+      │  │  • createConnection()       │ │
+      │  │  • sendText()               │ │
+      │  │  • prepareMedia()           │ │
+      │  │  • localStream$ / remote$   │ │
+      │  └──────────┬──────────────────┘ │
+      └─────────────┼─────────────────────┘
+                    │ implements
+                    ▼
+      ┌─────────────────────────────────┐
+      │        Data Layer               │
+      │  ┌─────────────────────────────┐ │
+      │  │   WebRTCServiceImpl         │ │
+      │  │  ┌─────────────────────────┐ │ │
+      │  │  │   RTCPeerConnection     │ │ │
+      │  │  │   RTCDataChannel        │ │ │
+      │  │  │   MediaStream handling  │ │ │
+      │  │  └─────────────────────────┘ │ │
+      │  └──────────┬──────────────────┘ │
+      └─────────────┼─────────────────────┘
+                    │ signals via
+                    ▼
+      ┌─────────────────────────────────┐
+      │    Signaling Infrastructure     │
+      │  ┌─────────────────────────────┐ │
+      │  │    Firestore Database       │ │
+      │  │  ┌─────────────────────────┐ │ │
+      │  │  │ /rooms/{roomId}/        │ │ │
+      │  │  │  ├─ offer              │ │ │
+      │  │  │  ├─ answer             │ │ │
+      │  │  │  ├─ iceCandidates/     │ │ │
+      │  │  │  └─ metadata          │ │ │
+      │  │  └─────────────────────────┘ │ │
+      │  └─────────────────────────────┘ │
+      └─────────────────────────────────┘
+                    │
+                    │ WebRTC P2P Connection
+                    │ (Direct Encrypted Data Channel)
+                    ▼
+      ┌─────────────────────────────────┐
+      │         Remote Peer             │
+      │     (Another GlobGram App)      │
+      └─────────────────────────────────┘
 
-Flow:
-1. UI triggers ChatBloc events
-2. ChatBloc calls WebRTCService methods  
-3. WebRTCService uses Firestore for signaling
-4. WebRTC establishes direct P2P connection
-5. Messages flow through encrypted data channel
-6. State updates propagate back through BlocBuilder
+Data Flow:
+1. UI → ChatBloc (Events)
+2. ChatBloc → WebRTCService (Method calls)  
+3. WebRTCService → Firestore (Signaling)
+4. WebRTC establishes → Direct P2P Connection
+5. Messages flow through → Encrypted DataChannel
+6. State updates propagate ← BlocBuilder updates UI
 ```
 
 ### Directory Structure
@@ -109,6 +145,7 @@ lib/
 - Chrome browser (for web testing)
 - Android Studio with Android SDK (for Android development)
 - Xcode (for iOS development on macOS)
+- Firebase project with Firestore enabled
 
 ### Step-by-Step Setup
 
@@ -122,7 +159,7 @@ cd globgram_p2p
 flutter pub get
 
 # Generate code (for Freezed models)
-flutter packages pub run build_runner build --delete-conflicting-outputs
+dart run build_runner build --delete-conflicting-outputs
 ```
 
 #### 2. Firebase Configuration
@@ -131,37 +168,53 @@ flutter packages pub run build_runner build --delete-conflicting-outputs
 dart pub global activate flutterfire_cli
 
 # Configure Firebase for your project
-flutterfire configure
+flutterfire configure --project=your-firebase-project-id
 
 # Follow prompts to select/create Firebase project
 # This updates lib/firebase_options.dart automatically
+
+# Enable Firestore in Firebase Console:
+# 1. Go to Firebase Console → Your Project → Firestore Database
+# 2. Click "Create database" → Start in test mode
+# 3. Choose location closest to your users
 ```
 
 #### 3. Launch for Web Development
 
-**Option A: VS Code**
+**Quick Start (Recommended):**
 ```bash
-# Launch with Chrome
+# Launch with Chrome and automatic hot reload
 flutter run -d chrome --web-port 8080
 
-# Or with web-server for lightweight testing
+# Access your app at: http://localhost:8080
+```
+
+**Advanced Web Launch Options:**
+```bash
+# Debug mode with enhanced WebRTC debugging
+flutter run -d chrome --web-port 8080 \
+  --dart-define=FLUTTER_WEB_USE_SKIA=true \
+  --dart-define=FLUTTER_WEB_DEBUG_SHOW_SEMANTICS=true
+
+# Release mode for performance testing  
+flutter run -d chrome --web-port 8080 --release
+
+# Web-server mode (lightweight, no Chrome DevTools)
 flutter run -d web-server --web-port 8080
 ```
 
-**Option B: Command Line**
-```bash
-# Debug mode with hot reload
-flutter run -d chrome --web-port 8080 --dart-define=FLUTTER_WEB_USE_SKIA=true
-
-# Release mode for performance testing
-flutter run -d chrome --web-port 8080 --release
-```
+**Testing P2P Connection on Web:**
+1. Open first tab: `http://localhost:8080`
+2. Create/join room (e.g., "test123")
+3. Open second tab: `http://localhost:8080` 
+4. Join same room ID
+5. Start chatting between tabs
 
 **Web Development Tips:**
 - Use Chrome DevTools for WebRTC debugging
-- Enable Developer Tools → Application → Service Workers for debugging
+- Visit `chrome://webrtc-internals/` for detailed WebRTC stats
 - Check Network tab for Firestore signaling traffic
-- Use chrome://webrtc-internals/ for WebRTC connection details
+- Enable Developer Tools → Application → Service Workers for debugging
 
 #### 4. Launch for Android Development
 
@@ -170,29 +223,48 @@ flutter run -d chrome --web-port 8080 --release
 # List available devices
 flutter devices
 
-# Launch on physical device
-flutter run -d <device-id>
+# Expected output:
+# Chrome (web)           • chrome           • web-javascript • Google Chrome
+# Android SDK built...   • emulator-5554    • android-x64    • Android 11 (API 30)
+# SM G973F (mobile)      • RZ8M8XXXXXX      • android-arm64  • Android 12 (API 31)
+```
+
+**Launch Commands:**
+```bash
+# Launch on physical device (recommended for WebRTC)
+flutter run -d RZ8M8XXXXXX  # Your device ID
 
 # Launch on emulator
 flutter run -d emulator-5554
+
+# Debug mode with enhanced logging
+flutter run -d RZ8M8XXXXXX --debug --verbose
 ```
 
 **Android-Specific Setup:**
 ```bash
-# Ensure Android SDK is properly configured
+# Verify Android setup
 flutter doctor -v
 
-# For WebRTC permissions, ensure these are in android/app/src/main/AndroidManifest.xml:
+# Check for required permissions in android/app/src/main/AndroidManifest.xml:
 # <uses-permission android:name="android.permission.INTERNET" />
 # <uses-permission android:name="android.permission.RECORD_AUDIO" />
 # <uses-permission android:name="android.permission.CAMERA" />
+# <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 ```
 
+**Testing P2P Connection on Android:**
+1. Install on two Android devices OR
+2. Use one Android device + one web browser OR  
+3. Use Android emulator + physical device
+4. Both join same room ID
+5. Test real-time messaging
+
 **Android Development Tips:**
-- Use Android Studio's logcat for debugging
-- Test on both physical device and emulator
-- WebRTC works best on physical devices for audio/video features
-- Use `flutter logs` to see real-time debug output
+- Use Android Studio's logcat: `View → Tool Windows → Logcat`
+- Filter logs: `flutter:` or `WebRTC:`
+- WebRTC performs better on physical devices
+- Use `flutter logs` in terminal for real-time debug output
 
 ### Development Workflow Commands
 
@@ -248,6 +320,223 @@ flutter run -d chrome --web-port 3000
 **Code Generation Issues:**
 ```bash
 # Clean and regenerate
+flutter clean
+flutter pub get
+dart run build_runner clean
+dart run build_runner build --delete-conflicting-outputs
+```
+
+## Troubleshooting FAQ
+
+### Connection Issues
+
+#### ❓ "Room not found" or "Failed to join room"
+
+**Symptoms:** App shows error when trying to join a room, or room creation fails.
+
+**Solutions:**
+1. **Check Firebase Configuration:**
+   ```bash
+   # Verify Firebase is properly configured
+   flutter clean && flutter pub get
+   
+   # Reconfigure if needed
+   flutterfire configure --project=your-project-id
+   ```
+
+2. **Verify Firestore Rules:**
+   - Go to Firebase Console → Firestore Database → Rules
+   - Ensure rules allow read/write access:
+   ```javascript
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /rooms/{roomId}/{document=**} {
+         allow read, write: if true;  // For testing only
+       }
+     }
+   }
+   ```
+
+3. **Check Network Connection:**
+   ```bash
+   # Test Firestore connectivity
+   curl -X GET "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/test/test"
+   ```
+
+#### ❓ "Stuck on Connecting..." state
+
+**Symptoms:** App shows "Connecting..." indefinitely, WebRTC connection never establishes.
+
+**Solutions:**
+1. **ICE Candidate Issues - Add TURN Server:**
+   ```dart
+   // In WebRTCServiceImpl, update _iceServers:
+   final List<Map<String, dynamic>> _iceServers = [
+     {'urls': 'stun:stun.l.google.com:19302'},
+     {'urls': 'stun:stun1.l.google.com:19302'},
+     // Add TURN server for NAT traversal:
+     {
+       'urls': 'turn:your-turn-server.com:3478',
+       'username': 'your-username',
+       'credential': 'your-password'
+     }
+   ];
+   ```
+
+2. **Firewall/Network Issues:**
+   - Try connecting both devices to same WiFi network
+   - Disable VPN/proxy temporarily
+   - Check if corporate firewall blocks WebRTC traffic
+
+3. **Clear App State:**
+   ```bash
+   # Clear browser cache/storage (Web)
+   # Or clear app data (Android)
+   
+   # Or programmatically:
+   await ChatBloc.clearHydratedState();
+   ```
+
+4. **Check Browser Compatibility:**
+   - Use Chrome or Firefox (recommended)
+   - Ensure WebRTC is enabled in browser settings
+   - Try incognito/private mode
+
+#### ❓ "No ICE candidates" or "ICE connection failed"
+
+**Symptoms:** WebRTC connection fails during ICE gathering phase.
+
+**Solutions:**
+1. **Verify STUN/TURN Servers:**
+   ```bash
+   # Test STUN server connectivity
+   telnet stun.l.google.com 19302
+   ```
+
+2. **Debug ICE Candidates:**
+   - Open Chrome DevTools → Console
+   - Look for ICE candidate logs
+   - Visit `chrome://webrtc-internals/` for detailed ICE stats
+
+3. **Network Environment Issues:**
+   ```markdown
+   - Symmetric NAT: Requires TURN server
+   - Restricted networks: May block UDP traffic
+   - Mobile networks: Often have strict NAT policies
+   ```
+
+4. **Configuration Fix:**
+   ```dart
+   // Add more aggressive ICE gathering
+   final configuration = {
+     'iceServers': _iceServers,
+     'iceCandidatePoolSize': 10,  // Increase pool size
+     'bundlePolicy': 'max-bundle',
+     'rtcpMuxPolicy': 'require',
+   };
+   ```
+
+### Development Issues
+
+#### ❓ "Hot reload not working" or "Code changes not reflecting"
+
+**Solutions:**
+```bash
+# Force full restart
+flutter clean && flutter pub get
+flutter run -d chrome --web-port 8080
+
+# Or use hot restart instead of hot reload
+# Press 'R' in flutter run terminal (capital R)
+```
+
+#### ❓ "Build runner errors" or "Generated files missing"
+
+**Solutions:**
+```bash
+# Clean and regenerate all files
+flutter packages pub run build_runner clean
+flutter packages pub run build_runner build --delete-conflicting-outputs
+
+# If still failing, delete generated files manually:
+find . -name "*.g.dart" -delete
+find . -name "*.freezed.dart" -delete
+dart run build_runner build
+```
+
+#### ❓ "Firebase initialization failed"
+
+**Solutions:**
+1. **Check firebase_options.dart:**
+   ```bash
+   # File should exist: lib/firebase_options.dart
+   # If missing, regenerate:
+   flutterfire configure
+   ```
+
+2. **Verify Project ID:**
+   ```dart
+   // In lib/firebase_options.dart, check:
+   static const FirebaseOptions web = FirebaseOptions(
+     apiKey: 'your-api-key',
+     appId: 'your-app-id', 
+     projectId: 'your-project-id',  // ← Should match Firebase Console
+   );
+   ```
+
+### Performance Issues
+
+#### ❓ "App is slow" or "UI freezing"
+
+**Solutions:**
+1. **Enable Performance Mode:**
+   ```bash
+   flutter run --release -d chrome --web-port 8080
+   ```
+
+2. **Optimize for Web:**
+   ```bash
+   flutter build web --dart-define=FLUTTER_WEB_USE_SKIA=true --release
+   ```
+
+3. **Check Memory Usage:**
+   - Use Chrome DevTools → Performance tab
+   - Monitor WebRTC connection stats at `chrome://webrtc-internals/`
+
+#### ❓ "Messages delayed" or "Connection drops frequently"
+
+**Solutions:**
+1. **Check Network Quality:**
+   ```bash
+   # Test ping to Firebase
+   ping firestore.googleapis.com
+   ```
+
+2. **Implement Connection Monitoring:**
+   ```dart
+   // Monitor connection state changes
+   _webrtcService.connectionState$.listen((state) {
+     if (state == ConnectionState.failed) {
+       // Implement reconnection logic
+       _webrtcService.reconnect();
+     }
+   });
+   ```
+
+### Getting Help
+
+If issues persist:
+1. Check logs: `flutter logs` (Android) or Browser DevTools (Web)
+2. Enable verbose logging: `flutter run --verbose`
+3. Test with minimal reproduction case
+4. Check Firebase Console for errors
+5. Verify WebRTC compatibility: `chrome://webrtc-internals/`
+
+For WebRTC-specific issues, the following resources are helpful:
+- [WebRTC Troubleshooting Guide](https://webrtc.org/getting-started/testing)
+- [Chrome WebRTC Internals](chrome://webrtc-internals/)
+- [Firefox WebRTC Debug](about:webrtc)
 flutter packages pub run build_runner clean
 flutter packages pub run build_runner build --delete-conflicting-outputs
 ```
@@ -666,15 +955,30 @@ If you encounter **"Unable to initialize Firebase"** errors:
 
 ## Migration
 
-### Hydrated State Migration (v2.0)
+### Hydrated State Migration (v3)
 
-This application uses HydratedBloc for persisting chat state between app sessions. When upgrading from older versions, the app automatically handles state migration:
+This application uses HydratedBloc for persisting chat state between app sessions. Starting with v3, the app uses a strict version checking system for enhanced data integrity:
 
-#### Automatic Migration
+#### Migration v3 (Current)
 
-- **Version Detection**: The app checks storage version on startup
-- **Automatic Reset**: If an older version is detected, chat history is automatically cleared
-- **Seamless Experience**: Users start with a clean slate after major updates
+- **Strict Version Check**: The app now requires exact version match (`json['v'] == 3`)
+- **Clean State Reset**: Any data from previous versions (v1, v2) is completely ignored
+- **Fresh Start Approach**: Old persisted data is not migrated - users start with clean state
+- **Enhanced Reliability**: Eliminates potential issues from legacy data formats
+
+#### Implementation Details
+
+```dart
+// ChatBloc.fromJson() implementation
+ChatState? fromJson(Map<String, dynamic> json) {
+  final storedVersion = json['v'] as int?;
+  if (storedVersion != 3) {
+    // Returns null to ignore old data completely
+    return null;
+  }
+  // Process only v3 format data...
+}
+```
 
 #### Manual Migration
 
@@ -687,17 +991,18 @@ await ChatBloc.clearHydratedState();
 
 #### Migration Log
 
-- **v2.0**: Implemented Freezed state classes, clearing old Equatable-based persisted states
+- **v3.0**: Strict version checking - old data ignored, fresh start only
+- **v2.0**: Implemented Freezed state classes, clearing old Equatable-based persisted states  
 - **v1.0**: Initial implementation with Equatable states
 
 #### Storage Structure
 
-Current storage version: **2**
+Current storage version: **3**
 
 The chat state is persisted with the following structure:
 ```json
 {
-  "storage_version": 2,
+  "v": 3,
   "type": "connected|connecting|initial|error|disconnected",
   "roomId": "string",
   "isCaller": "boolean",
@@ -706,7 +1011,7 @@ The chat state is persisted with the following structure:
 }
 ```
 
-When the storage version is lower than the current version (2), all persisted data is cleared and the user starts fresh.
+When the storage version is not exactly 3, all persisted data is ignored and the user starts with a fresh initial state.
 
 ## Contributing
 

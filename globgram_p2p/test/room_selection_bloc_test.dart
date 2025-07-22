@@ -6,6 +6,8 @@ import 'package:mocktail/mocktail.dart';
 import 'package:globgram_p2p/features/room_selection/data/datasources/signaling_data_source.dart';
 import 'package:globgram_p2p/features/room_selection/data/models/signaling_models.dart';
 import 'package:globgram_p2p/features/room_selection/presentation/room_selection_local_bloc.dart';
+import 'package:globgram_p2p/features/room_selection/presentation/room_selection_state.dart';
+import 'package:globgram_p2p/features/room_selection/presentation/room_selection_event.dart';
 
 // Mock class for SignalingDataSource
 class MockSignalingDataSource extends Mock implements SignalingDataSource {}
@@ -52,13 +54,13 @@ void main() {
       roomSelectionBloc.close();
     });
 
-    test('initial state is RoomInitial', () {
-      expect(roomSelectionBloc.state, equals(const RoomInitial()));
+    test('initial state is idle', () {
+      expect(roomSelectionBloc.state, equals(const RoomSelectionState.idle()));
     });
 
     group('CreateRequested', () {
       blocTest<RoomSelectionLocalBloc, RoomSelectionState>(
-        'emits [RoomCreating, RoomWaitingAnswer] when create room succeeds',
+        'emits [creating, waitingAnswer] when create room succeeds',
         setUp: () {
           when(
             () => mockSignalingDataSource.createRoom(any()),
@@ -68,10 +70,10 @@ void main() {
           ).thenAnswer((_) => Stream.value(null));
         },
         build: () => roomSelectionBloc,
-        act: (bloc) => bloc.add(const CreateRequested()),
+        act: (bloc) => bloc.add(const RoomSelectionEvent.createRequested()),
         expect: () => [
-          const RoomCreating(),
-          const RoomWaitingAnswer('ROOM123', isCaller: true),
+          const RoomSelectionState.creating(),
+          const RoomSelectionState.waitingAnswer(roomId: 'ROOM123'),
         ],
         verify: (_) {
           verify(() => mockSignalingDataSource.createRoom(any())).called(1);
@@ -80,17 +82,17 @@ void main() {
       );
 
       blocTest<RoomSelectionLocalBloc, RoomSelectionState>(
-        'emits [RoomCreating, RoomError] when create room fails',
+        'emits [creating, failure] when create room fails',
         setUp: () {
           when(
             () => mockSignalingDataSource.createRoom(any()),
           ).thenThrow(Exception('Creation failed'));
         },
         build: () => roomSelectionBloc,
-        act: (bloc) => bloc.add(const CreateRequested()),
+        act: (bloc) => bloc.add(const RoomSelectionEvent.createRequested()),
         expect: () => [
-          const RoomCreating(),
-          const RoomError('Failed to create room: Exception: Creation failed'),
+          const RoomSelectionState.creating(),
+          const RoomSelectionState.failure(message: 'Failed to create room: Exception: Creation failed'),
         ],
       );
     });
@@ -116,10 +118,10 @@ void main() {
           ).thenAnswer((_) async {});
         },
         build: () => roomSelectionBloc,
-        act: (bloc) => bloc.add(const JoinRequested(testRoomId)),
+        act: (bloc) => bloc.add(const RoomSelectionEvent.joinRequested(roomId: testRoomId)),
         expect: () => [
-          const RoomConnecting(testRoomId, isCaller: false),
-          const RoomConnected(testRoomId, isCaller: false),
+          const RoomSelectionState.joining(roomId: testRoomId),
+          const RoomSelectionState.connected(roomId: testRoomId, isCaller: false),
         ],
         verify: (_) {
           verify(() => mockSignalingDataSource.roomExists(testRoomId)).called(1);
@@ -129,43 +131,43 @@ void main() {
       );
 
       blocTest<RoomSelectionLocalBloc, RoomSelectionState>(
-        'emits [RoomConnecting, RoomError] when room does not exist',
+        'emits [joining, failure] when room does not exist',
         setUp: () {
           when(
             () => mockSignalingDataSource.roomExists(testRoomId),
           ).thenAnswer((_) async => false);
         },
         build: () => roomSelectionBloc,
-        act: (bloc) => bloc.add(const JoinRequested(testRoomId)),
+        act: (bloc) => bloc.add(const RoomSelectionEvent.joinRequested(roomId: testRoomId)),
         expect: () => [
-          const RoomConnecting(testRoomId, isCaller: false),
-          const RoomError('Failed to join room: Exception: Room not found: $testRoomId'),
+          const RoomSelectionState.joining(roomId: testRoomId),
+          isA<RoomSelectionFailure>(),
         ],
       );
 
       blocTest<RoomSelectionLocalBloc, RoomSelectionState>(
-        'emits [RoomConnecting, RoomError] when join room fails',
+        'emits [joining, failure] when join room fails',
         setUp: () {
           when(
             () => mockSignalingDataSource.roomExists(testRoomId),
           ).thenThrow(Exception('Network error'));
         },
         build: () => roomSelectionBloc,
-        act: (bloc) => bloc.add(const JoinRequested(testRoomId)),
+        act: (bloc) => bloc.add(const RoomSelectionEvent.joinRequested(roomId: testRoomId)),
         expect: () => [
-          const RoomConnecting(testRoomId, isCaller: false),
-          const RoomError('Failed to join room: Exception: Network error'),
+          const RoomSelectionState.joining(roomId: testRoomId),
+          isA<RoomSelectionFailure>(),
         ],
       );
     });
 
     group('ClearRequested', () {
       blocTest<RoomSelectionLocalBloc, RoomSelectionState>(
-        'emits [RoomInitial] when clear is requested',
+        'emits [idle] when clear is requested',
         build: () => roomSelectionBloc,
-        act: (bloc) => bloc.add(const ClearRequested()),
+        act: (bloc) => bloc.add(const RoomSelectionEvent.clearRequested()),
         expect: () => [
-          const RoomInitial(),
+          const RoomSelectionState.idle(),
         ],
       );
     });

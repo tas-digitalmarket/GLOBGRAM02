@@ -11,9 +11,11 @@ class ConnectionStatusWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final (text, color) = state.when(
       initial: () => ('chat.status.initializing'.tr(), Colors.grey),
+      loading: (_, __, loadingMessage) => (loadingMessage ?? 'Loading...', Colors.blue),
       connecting: (_, __) => ('chat.status.connecting'.tr(), Colors.amber),
       connected: (_, __, ___) => ('chat.status.connected'.tr(), Colors.green),
-      error: (_) => ('chat.status.error'.tr(), Colors.red),
+      sendingMessage: (_, __, ___, ____) => ('Sending message...', Colors.orange),
+      error: (_, __, ___) => ('chat.status.error'.tr(), Colors.red),
       disconnected: () => ('chat.status.disconnected'.tr(), Colors.grey),
     );
 

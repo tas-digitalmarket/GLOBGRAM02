@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:logger/logger.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:globgram_p2p/features/chat/domain/chat_message.dart';
 import 'package:globgram_p2p/features/chat/domain/webrtc_service.dart';
 
@@ -14,11 +15,11 @@ class WebRTCServiceMock implements WebRTCService {
   final StreamController<ConnectionState> _connectionStateController =
       StreamController<ConnectionState>.broadcast();
 
-  // TODO: Mock media stream controllers - uncomment when implementing media features
-  // final StreamController<MediaStream> _localStreamController =
-  //     StreamController<MediaStream>.broadcast();
-  // final StreamController<MediaStream> _remoteStreamController =
-  //     StreamController<MediaStream>.broadcast();
+  // Mock media stream controllers
+  final StreamController<MediaStream> _localStreamController =
+      StreamController<MediaStream>.broadcast();
+  final StreamController<MediaStream> _remoteStreamController =
+      StreamController<MediaStream>.broadcast();
 
   @override
   Stream<ChatMessage> get messages$ => _messageController.stream;
@@ -26,11 +27,11 @@ class WebRTCServiceMock implements WebRTCService {
   Stream<ConnectionState> get connectionState$ =>
       _connectionStateController.stream;
 
-  // TODO: Mock media stream getters - uncomment when implementing media features
-  // @override
-  // Stream<MediaStream> get localStream$ => _localStreamController.stream;
-  // @override
-  // Stream<MediaStream> get remoteStream$ => _remoteStreamController.stream;
+  // Mock media stream getters
+  @override
+  Stream<MediaStream> get localStream$ => _localStreamController.stream;
+  @override
+  Stream<MediaStream> get remoteStream$ => _remoteStreamController.stream;
 
   @override
   Future<void> createConnection({required bool isCaller, required String roomId}) async {
@@ -46,8 +47,6 @@ class WebRTCServiceMock implements WebRTCService {
     await _sendMessage(text);
   }
 
-  // TODO: Mock media methods - uncomment when implementing media features
-  /*
   @override
   Future<void> prepareMedia({bool audio = true, bool video = false}) async {
     _logger.i('Mock: Preparing media with audio=$audio, video=$video');
@@ -72,7 +71,6 @@ class WebRTCServiceMock implements WebRTCService {
   Future<void> toggleVideo() async {
     _logger.i('Mock: Toggling video');
   }
-  */
   ConnectionState _connectionState = ConnectionState.disconnected;
 
   bool _isInitialized = false;
@@ -243,10 +241,8 @@ class WebRTCServiceMock implements WebRTCService {
       // Close stream controllers
       await _messageController.close();
       await _connectionStateController.close();
-
-      // TODO: Close mock media stream controllers when implementing media features
-      // await _localStreamController.close();
-      // await _remoteStreamController.close();
+      await _localStreamController.close();
+      await _remoteStreamController.close();
 
       _isInitialized = false;
       _updateConnectionState(ConnectionState.disconnected);

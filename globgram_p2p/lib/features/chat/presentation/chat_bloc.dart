@@ -3,24 +3,18 @@ import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:logger/logger.dart';
 import 'package:globgram_p2p/features/chat/domain/webrtc_service.dart';
 import 'package:globgram_p2p/features/chat/domain/chat_message.dart';
-import 'package:globgram_p2p/features/room_selection/data/datasources/signaling_data_source.dart';
 import 'package:globgram_p2p/features/chat/presentation/chat_state.dart';
 import 'package:globgram_p2p/features/chat/presentation/chat_event.dart';
 
 class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
   static final Logger _logger = Logger();
   final WebRTCService _webrtcService;
-  final SignalingDataSource _signalingDataSource;
-
-  // Hydration version for migration management
-  static const int _currentStorageVersion = 2;
-  static const String _versionKey = 'storage_version';
 
   // Stream subscriptions
   StreamSubscription<ChatMessage>? _messageSubscription;
   StreamSubscription<ConnectionState>? _connectionSubscription;
 
-  ChatBloc(this._webrtcService, this._signalingDataSource) 
+  ChatBloc(this._webrtcService) 
       : super(const ChatState.initial()) {
     on<ChatInitializeConnection>(_onInitializeConnection);
     on<ChatSendMessage>(_onSendMessage);
@@ -37,6 +31,17 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
     try {
       _logger.i('Initializing chat connection for room: ${event.roomId}');
       
+      // First show loading state
+      emit(ChatState.loading(
+        roomId: event.roomId,
+        isCaller: event.isCaller,
+        loadingMessage: 'Establishing connection...',
+      ));
+
+      // Brief delay to show loading state
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      // Then show connecting state
       emit(ChatState.connecting(
         roomId: event.roomId,
         isCaller: event.isCaller,
@@ -62,7 +67,11 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
       _logger.i('Chat connection initialized successfully');
     } catch (error) {
       _logger.e('Failed to initialize connection: $error');
-      emit(ChatState.error(message: 'Failed to initialize connection: $error'));
+      emit(ChatState.error(
+        message: 'Failed to initialize connection: $error',
+        roomId: event.roomId,
+        isCaller: event.isCaller,
+      ));
     }
   }
 
@@ -70,16 +79,65 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
     ChatSendMessage event,
     Emitter<ChatState> emit,
   ) async {
+    // Only send message if we're connected
+    final currentState = state;
+    if (currentState is! ChatStateConnected) {
+      _logger.w('Cannot send message: not connected');
+      emit(ChatState.error(
+        message: 'Cannot send message: not connected',
+        roomId: currentState.maybeWhen(
+          connecting: (roomId, isCaller) => roomId,
+          loading: (roomId, isCaller, loadingMessage) => roomId,
+          orElse: () => null,
+        ),
+        isCaller: currentState.maybeWhen(
+          connecting: (roomId, isCaller) => isCaller,
+          loading: (roomId, isCaller, loadingMessage) => isCaller,
+          orElse: () => null,
+        ),
+      ));
+      return;
+    }
+
     try {
       _logger.d('Sending message: ${event.text}');
+      
+      // Show sending state
+      emit(ChatState.sendingMessage(
+        roomId: currentState.roomId,
+        isCaller: currentState.isCaller,
+        messages: currentState.messages,
+        pendingMessage: event.text,
+      ));
       
       // Send message through WebRTC service
       await _webrtcService.sendText(event.text);
       
       _logger.d('Message sent successfully');
+      
+      // Return to connected state (the message will be added via messageReceived event)
+      emit(ChatState.connected(
+        roomId: currentState.roomId,
+        isCaller: currentState.isCaller,
+        messages: currentState.messages,
+      ));
+      
     } catch (error) {
       _logger.e('Failed to send message: $error');
-      emit(ChatState.error(message: 'Failed to send message: $error'));
+      final currentState = state;
+      emit(ChatState.error(
+        message: 'Failed to send message: $error',
+        roomId: currentState.maybeWhen(
+          connected: (roomId, isCaller, messages) => roomId,
+          sendingMessage: (roomId, isCaller, messages, pendingMessage) => roomId,
+          orElse: () => null,
+        ),
+        isCaller: currentState.maybeWhen(
+          connected: (roomId, isCaller, messages) => isCaller,
+          sendingMessage: (roomId, isCaller, messages, pendingMessage) => isCaller,
+          orElse: () => null,
+        ),
+      ));
     }
   }
 
@@ -102,12 +160,35 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
           isCaller: currentState.isCaller,
           messages: updatedMessages,
         ));
+      } else if (currentState is ChatStateSendingMessage) {
+        // Add new message and return to connected state
+        final updatedMessages = List<ChatMessage>.from(currentState.messages)
+          ..add(event.message as ChatMessage);
+        
+        emit(ChatState.connected(
+          roomId: currentState.roomId,
+          isCaller: currentState.isCaller,
+          messages: updatedMessages,
+        ));
       } else {
         _logger.w('Received message while not in connected state: $currentState');
       }
     } catch (error) {
       _logger.e('Failed to handle received message: $error');
-      emit(ChatState.error(message: 'Failed to handle received message: $error'));
+      final currentState = state;
+      emit(ChatState.error(
+        message: 'Failed to handle received message: $error',
+        roomId: currentState.maybeWhen(
+          connected: (roomId, isCaller, messages) => roomId,
+          sendingMessage: (roomId, isCaller, messages, pendingMessage) => roomId,
+          orElse: () => null,
+        ),
+        isCaller: currentState.maybeWhen(
+          connected: (roomId, isCaller, messages) => isCaller,
+          sendingMessage: (roomId, isCaller, messages, pendingMessage) => isCaller,
+          orElse: () => null,
+        ),
+      ));
     }
   }
 
@@ -197,15 +278,25 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
     }
   }
 
+  /// Helper method to parse boolean from JSON
+  bool? _parseBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is String) {
+      if (value == 'true') return true;
+      if (value == 'false') return false;
+    }
+    return null;
+  }
+
   @override
   ChatState? fromJson(Map<String, dynamic> json) {
     try {
-      // Check storage version for migration
-      final storedVersion = json[_versionKey] as int?;
-      if (storedVersion == null || storedVersion < _currentStorageVersion) {
-        _logger.i('Storage version mismatch (stored: $storedVersion, current: $_currentStorageVersion). Clearing old state.');
-        // Return initial state for migration - old messages will be cleared
-        return const ChatState.initial();
+      // Check storage version for migration (v3)
+      final storedVersion = json['v'] as int?;
+      if (storedVersion != 3) {
+        _logger.i('Storage version mismatch (stored: $storedVersion, required: 3). Ignoring old data.');
+        // Return null to ignore old data and start fresh
+        return null;
       }
 
       final type = json['type'] as String?;
@@ -214,10 +305,16 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
       switch (type) {
         case 'initial':
           return const ChatState.initial();
+        case 'loading':
+          return ChatState.loading(
+            roomId: json['roomId'] as String? ?? '',
+            isCaller: _parseBool(json['isCaller']),
+            loadingMessage: json['loadingMessage'] as String?,
+          );
         case 'connecting':
           return ChatState.connecting(
             roomId: json['roomId'] as String,
-            isCaller: json['isCaller'] as bool,
+            isCaller: _parseBool(json['isCaller']) ?? false,
           );
         case 'connected':
           final messagesJson = json['messages'] as List<dynamic>? ?? [];
@@ -226,11 +323,26 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
               .toList();
           return ChatState.connected(
             roomId: json['roomId'] as String,
-            isCaller: json['isCaller'] as bool,
+            isCaller: _parseBool(json['isCaller']) ?? false,
             messages: messages,
           );
+        case 'sendingMessage':
+          final messagesJson = json['messages'] as List<dynamic>? ?? [];
+          final messages = messagesJson
+              .map((e) => ChatMessage.fromJson(e as Map<String, dynamic>))
+              .toList();
+          return ChatState.sendingMessage(
+            roomId: json['roomId'] as String,
+            isCaller: _parseBool(json['isCaller']) ?? false,
+            messages: messages,
+            pendingMessage: json['pendingMessage'] as String,
+          );
         case 'error':
-          return ChatState.error(message: json['message'] as String);
+          return ChatState.error(
+            message: json['message'] as String,
+            roomId: json['roomId'] as String?,
+            isCaller: _parseBool(json['isCaller']),
+          );
         case 'disconnected':
           return const ChatState.disconnected();
         default:
@@ -248,6 +360,12 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
     try {
       final baseJson = state.when(
         initial: () => {'type': 'initial'},
+        loading: (roomId, isCaller, loadingMessage) => {
+          'type': 'loading',
+          'roomId': roomId,
+          'isCaller': isCaller.toString(),
+          'loadingMessage': loadingMessage ?? '',
+        },
         connecting: (roomId, isCaller) => {
           'type': 'connecting',
           'roomId': roomId,
@@ -259,15 +377,24 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
           'isCaller': isCaller,
           'messages': messages.map((e) => e.toJson()).toList(),
         },
-        error: (message) => {
+        sendingMessage: (roomId, isCaller, messages, pendingMessage) => {
+          'type': 'sendingMessage',
+          'roomId': roomId,
+          'isCaller': isCaller,
+          'messages': messages.map((e) => e.toJson()).toList(),
+          'pendingMessage': pendingMessage,
+        },
+        error: (message, roomId, isCaller) => {
           'type': 'error',
           'message': message,
+          'roomId': roomId ?? '',
+          'isCaller': isCaller?.toString() ?? '',
         },
         disconnected: () => {'type': 'disconnected'},
       );
       
-      // Add storage version for migration management
-      baseJson[_versionKey] = _currentStorageVersion;
+      // Add storage version for migration management (v3)
+      baseJson['v'] = 3;
       return baseJson;
     } catch (error) {
       _logger.e('Error serializing ChatState: $error');

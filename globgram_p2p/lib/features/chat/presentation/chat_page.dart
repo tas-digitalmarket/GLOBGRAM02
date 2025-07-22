@@ -61,9 +61,9 @@ class _ChatPageState extends State<ChatPage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Room: ${widget.roomId}'),
+            Text('${'common.room'.tr()}: ${widget.roomId}'),
             Text(
-              widget.asCaller ? 'Caller' : 'Joiner',
+              widget.asCaller ? 'common.caller'.tr() : 'common.joiner'.tr(),
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.normal,
@@ -80,7 +80,7 @@ class _ChatPageState extends State<ChatPage> {
                 final debugInfo = webrtcService.getDebugInfo();
                 debugPrint('WebRTC Debug Info: $debugInfo');
               },
-              tooltip: 'Debug WebRTC Connection',
+              tooltip: 'debug.webrtc_connection'.tr(),
             ),
           BlocBuilder<ChatBloc, ChatState>(
             builder: (context, state) {
@@ -114,7 +114,7 @@ class _ChatPageState extends State<ChatPage> {
                       });
                     }
                   },
-                  error: (message) {
+                  error: (message, roomId, isCaller) {
                     // Show error snackbar only once per unique error message
                     if (_lastErrorShown != message) {
                       _lastErrorShown = message;
@@ -149,6 +149,16 @@ class _ChatPageState extends State<ChatPage> {
                         const CircularProgressIndicator(),
                         const SizedBox(height: 16),
                         Text('chat.messages.initializing'.tr()),
+                      ],
+                    ),
+                  ),
+                  loading: (roomId, isCaller, loadingMessage) => Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(loadingMessage ?? 'Loading...'),
                       ],
                     ),
                   ),
@@ -205,7 +215,64 @@ class _ChatPageState extends State<ChatPage> {
                       },
                     );
                   },
-                  error: (message) => Center(
+                  sendingMessage: (roomId, isCaller, messages, pendingMessage) {
+                    // Show messages with pending message indicator
+                    return Column(
+                      children: [
+                        Expanded(
+                          child: ListView.separated(
+                            controller: _scrollController,
+                            reverse: true,
+                            padding: const EdgeInsets.all(16.0),
+                            itemCount: messages.length + 1, // +1 for pending message
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (context, index) {
+                              if (index == 0) {
+                                // Show pending message at the top (reversed list)
+                                return Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Sending: $pendingMessage',
+                                          style: TextStyle(
+                                            color: Colors.blue.shade700,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+                              final messageIndex = messages.length - index; // Adjust for pending message
+                              final message = messages[messageIndex];
+                              return MessageBubble(
+                                msg: message,
+                                isMine: message.sender == ChatSender.self,
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  error: (message, roomId, isCaller) => Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

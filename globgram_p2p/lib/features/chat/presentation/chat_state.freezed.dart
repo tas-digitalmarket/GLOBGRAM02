@@ -20,6 +20,12 @@ mixin _$ChatState {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
+    required TResult Function(
+      String? roomId,
+      bool? isCaller,
+      String? loadingMessage,
+    )
+    loading,
     required TResult Function(String roomId, bool isCaller) connecting,
     required TResult Function(
       String roomId,
@@ -27,51 +33,83 @@ mixin _$ChatState {
       List<ChatMessage> messages,
     )
     connected,
-    required TResult Function(String message) error,
+    required TResult Function(String message, String? roomId, bool? isCaller)
+    error,
     required TResult Function() disconnected,
+    required TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )
+    sendingMessage,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
+    TResult? Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
     TResult? Function(String roomId, bool isCaller)? connecting,
     TResult? Function(String roomId, bool isCaller, List<ChatMessage> messages)?
     connected,
-    TResult? Function(String message)? error,
+    TResult? Function(String message, String? roomId, bool? isCaller)? error,
     TResult? Function()? disconnected,
+    TResult? Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
+    TResult Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
     TResult Function(String roomId, bool isCaller)? connecting,
     TResult Function(String roomId, bool isCaller, List<ChatMessage> messages)?
     connected,
-    TResult Function(String message)? error,
+    TResult Function(String message, String? roomId, bool? isCaller)? error,
     TResult Function()? disconnected,
+    TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(ChatStateInitial value) initial,
+    required TResult Function(ChatStateLoading value) loading,
     required TResult Function(ChatStateConnecting value) connecting,
     required TResult Function(ChatStateConnected value) connected,
     required TResult Function(ChatStateError value) error,
     required TResult Function(ChatStateDisconnected value) disconnected,
+    required TResult Function(ChatStateSendingMessage value) sendingMessage,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(ChatStateInitial value)? initial,
+    TResult? Function(ChatStateLoading value)? loading,
     TResult? Function(ChatStateConnecting value)? connecting,
     TResult? Function(ChatStateConnected value)? connected,
     TResult? Function(ChatStateError value)? error,
     TResult? Function(ChatStateDisconnected value)? disconnected,
+    TResult? Function(ChatStateSendingMessage value)? sendingMessage,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(ChatStateInitial value)? initial,
+    TResult Function(ChatStateLoading value)? loading,
     TResult Function(ChatStateConnecting value)? connecting,
     TResult Function(ChatStateConnected value)? connected,
     TResult Function(ChatStateError value)? error,
     TResult Function(ChatStateDisconnected value)? disconnected,
+    TResult Function(ChatStateSendingMessage value)? sendingMessage,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
 }
@@ -140,6 +178,12 @@ class _$ChatStateInitialImpl implements ChatStateInitial {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
+    required TResult Function(
+      String? roomId,
+      bool? isCaller,
+      String? loadingMessage,
+    )
+    loading,
     required TResult Function(String roomId, bool isCaller) connecting,
     required TResult Function(
       String roomId,
@@ -147,8 +191,16 @@ class _$ChatStateInitialImpl implements ChatStateInitial {
       List<ChatMessage> messages,
     )
     connected,
-    required TResult Function(String message) error,
+    required TResult Function(String message, String? roomId, bool? isCaller)
+    error,
     required TResult Function() disconnected,
+    required TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )
+    sendingMessage,
   }) {
     return initial();
   }
@@ -157,11 +209,20 @@ class _$ChatStateInitialImpl implements ChatStateInitial {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
+    TResult? Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
     TResult? Function(String roomId, bool isCaller)? connecting,
     TResult? Function(String roomId, bool isCaller, List<ChatMessage> messages)?
     connected,
-    TResult? Function(String message)? error,
+    TResult? Function(String message, String? roomId, bool? isCaller)? error,
     TResult? Function()? disconnected,
+    TResult? Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
   }) {
     return initial?.call();
   }
@@ -170,11 +231,20 @@ class _$ChatStateInitialImpl implements ChatStateInitial {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
+    TResult Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
     TResult Function(String roomId, bool isCaller)? connecting,
     TResult Function(String roomId, bool isCaller, List<ChatMessage> messages)?
     connected,
-    TResult Function(String message)? error,
+    TResult Function(String message, String? roomId, bool? isCaller)? error,
     TResult Function()? disconnected,
+    TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
     required TResult orElse(),
   }) {
     if (initial != null) {
@@ -187,10 +257,12 @@ class _$ChatStateInitialImpl implements ChatStateInitial {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(ChatStateInitial value) initial,
+    required TResult Function(ChatStateLoading value) loading,
     required TResult Function(ChatStateConnecting value) connecting,
     required TResult Function(ChatStateConnected value) connected,
     required TResult Function(ChatStateError value) error,
     required TResult Function(ChatStateDisconnected value) disconnected,
+    required TResult Function(ChatStateSendingMessage value) sendingMessage,
   }) {
     return initial(this);
   }
@@ -199,10 +271,12 @@ class _$ChatStateInitialImpl implements ChatStateInitial {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(ChatStateInitial value)? initial,
+    TResult? Function(ChatStateLoading value)? loading,
     TResult? Function(ChatStateConnecting value)? connecting,
     TResult? Function(ChatStateConnected value)? connected,
     TResult? Function(ChatStateError value)? error,
     TResult? Function(ChatStateDisconnected value)? disconnected,
+    TResult? Function(ChatStateSendingMessage value)? sendingMessage,
   }) {
     return initial?.call(this);
   }
@@ -211,10 +285,12 @@ class _$ChatStateInitialImpl implements ChatStateInitial {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(ChatStateInitial value)? initial,
+    TResult Function(ChatStateLoading value)? loading,
     TResult Function(ChatStateConnecting value)? connecting,
     TResult Function(ChatStateConnected value)? connected,
     TResult Function(ChatStateError value)? error,
     TResult Function(ChatStateDisconnected value)? disconnected,
+    TResult Function(ChatStateSendingMessage value)? sendingMessage,
     required TResult orElse(),
   }) {
     if (initial != null) {
@@ -226,6 +302,245 @@ class _$ChatStateInitialImpl implements ChatStateInitial {
 
 abstract class ChatStateInitial implements ChatState {
   const factory ChatStateInitial() = _$ChatStateInitialImpl;
+}
+
+/// @nodoc
+abstract class _$$ChatStateLoadingImplCopyWith<$Res> {
+  factory _$$ChatStateLoadingImplCopyWith(
+    _$ChatStateLoadingImpl value,
+    $Res Function(_$ChatStateLoadingImpl) then,
+  ) = __$$ChatStateLoadingImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String? roomId, bool? isCaller, String? loadingMessage});
+}
+
+/// @nodoc
+class __$$ChatStateLoadingImplCopyWithImpl<$Res>
+    extends _$ChatStateCopyWithImpl<$Res, _$ChatStateLoadingImpl>
+    implements _$$ChatStateLoadingImplCopyWith<$Res> {
+  __$$ChatStateLoadingImplCopyWithImpl(
+    _$ChatStateLoadingImpl _value,
+    $Res Function(_$ChatStateLoadingImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of ChatState
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? roomId = freezed,
+    Object? isCaller = freezed,
+    Object? loadingMessage = freezed,
+  }) {
+    return _then(
+      _$ChatStateLoadingImpl(
+        roomId: freezed == roomId
+            ? _value.roomId
+            : roomId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        isCaller: freezed == isCaller
+            ? _value.isCaller
+            : isCaller // ignore: cast_nullable_to_non_nullable
+                  as bool?,
+        loadingMessage: freezed == loadingMessage
+            ? _value.loadingMessage
+            : loadingMessage // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+
+class _$ChatStateLoadingImpl implements ChatStateLoading {
+  const _$ChatStateLoadingImpl({
+    this.roomId,
+    this.isCaller,
+    this.loadingMessage,
+  });
+
+  @override
+  final String? roomId;
+  @override
+  final bool? isCaller;
+  @override
+  final String? loadingMessage;
+
+  @override
+  String toString() {
+    return 'ChatState.loading(roomId: $roomId, isCaller: $isCaller, loadingMessage: $loadingMessage)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ChatStateLoadingImpl &&
+            (identical(other.roomId, roomId) || other.roomId == roomId) &&
+            (identical(other.isCaller, isCaller) ||
+                other.isCaller == isCaller) &&
+            (identical(other.loadingMessage, loadingMessage) ||
+                other.loadingMessage == loadingMessage));
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, roomId, isCaller, loadingMessage);
+
+  /// Create a copy of ChatState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ChatStateLoadingImplCopyWith<_$ChatStateLoadingImpl> get copyWith =>
+      __$$ChatStateLoadingImplCopyWithImpl<_$ChatStateLoadingImpl>(
+        this,
+        _$identity,
+      );
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() initial,
+    required TResult Function(
+      String? roomId,
+      bool? isCaller,
+      String? loadingMessage,
+    )
+    loading,
+    required TResult Function(String roomId, bool isCaller) connecting,
+    required TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+    )
+    connected,
+    required TResult Function(String message, String? roomId, bool? isCaller)
+    error,
+    required TResult Function() disconnected,
+    required TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )
+    sendingMessage,
+  }) {
+    return loading(roomId, isCaller, loadingMessage);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? initial,
+    TResult? Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
+    TResult? Function(String roomId, bool isCaller)? connecting,
+    TResult? Function(String roomId, bool isCaller, List<ChatMessage> messages)?
+    connected,
+    TResult? Function(String message, String? roomId, bool? isCaller)? error,
+    TResult? Function()? disconnected,
+    TResult? Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
+  }) {
+    return loading?.call(roomId, isCaller, loadingMessage);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? initial,
+    TResult Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
+    TResult Function(String roomId, bool isCaller)? connecting,
+    TResult Function(String roomId, bool isCaller, List<ChatMessage> messages)?
+    connected,
+    TResult Function(String message, String? roomId, bool? isCaller)? error,
+    TResult Function()? disconnected,
+    TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
+    required TResult orElse(),
+  }) {
+    if (loading != null) {
+      return loading(roomId, isCaller, loadingMessage);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(ChatStateInitial value) initial,
+    required TResult Function(ChatStateLoading value) loading,
+    required TResult Function(ChatStateConnecting value) connecting,
+    required TResult Function(ChatStateConnected value) connected,
+    required TResult Function(ChatStateError value) error,
+    required TResult Function(ChatStateDisconnected value) disconnected,
+    required TResult Function(ChatStateSendingMessage value) sendingMessage,
+  }) {
+    return loading(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(ChatStateInitial value)? initial,
+    TResult? Function(ChatStateLoading value)? loading,
+    TResult? Function(ChatStateConnecting value)? connecting,
+    TResult? Function(ChatStateConnected value)? connected,
+    TResult? Function(ChatStateError value)? error,
+    TResult? Function(ChatStateDisconnected value)? disconnected,
+    TResult? Function(ChatStateSendingMessage value)? sendingMessage,
+  }) {
+    return loading?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(ChatStateInitial value)? initial,
+    TResult Function(ChatStateLoading value)? loading,
+    TResult Function(ChatStateConnecting value)? connecting,
+    TResult Function(ChatStateConnected value)? connected,
+    TResult Function(ChatStateError value)? error,
+    TResult Function(ChatStateDisconnected value)? disconnected,
+    TResult Function(ChatStateSendingMessage value)? sendingMessage,
+    required TResult orElse(),
+  }) {
+    if (loading != null) {
+      return loading(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class ChatStateLoading implements ChatState {
+  const factory ChatStateLoading({
+    final String? roomId,
+    final bool? isCaller,
+    final String? loadingMessage,
+  }) = _$ChatStateLoadingImpl;
+
+  String? get roomId;
+  bool? get isCaller;
+  String? get loadingMessage;
+
+  /// Create a copy of ChatState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ChatStateLoadingImplCopyWith<_$ChatStateLoadingImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -313,6 +628,12 @@ class _$ChatStateConnectingImpl implements ChatStateConnecting {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
+    required TResult Function(
+      String? roomId,
+      bool? isCaller,
+      String? loadingMessage,
+    )
+    loading,
     required TResult Function(String roomId, bool isCaller) connecting,
     required TResult Function(
       String roomId,
@@ -320,8 +641,16 @@ class _$ChatStateConnectingImpl implements ChatStateConnecting {
       List<ChatMessage> messages,
     )
     connected,
-    required TResult Function(String message) error,
+    required TResult Function(String message, String? roomId, bool? isCaller)
+    error,
     required TResult Function() disconnected,
+    required TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )
+    sendingMessage,
   }) {
     return connecting(roomId, isCaller);
   }
@@ -330,11 +659,20 @@ class _$ChatStateConnectingImpl implements ChatStateConnecting {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
+    TResult? Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
     TResult? Function(String roomId, bool isCaller)? connecting,
     TResult? Function(String roomId, bool isCaller, List<ChatMessage> messages)?
     connected,
-    TResult? Function(String message)? error,
+    TResult? Function(String message, String? roomId, bool? isCaller)? error,
     TResult? Function()? disconnected,
+    TResult? Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
   }) {
     return connecting?.call(roomId, isCaller);
   }
@@ -343,11 +681,20 @@ class _$ChatStateConnectingImpl implements ChatStateConnecting {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
+    TResult Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
     TResult Function(String roomId, bool isCaller)? connecting,
     TResult Function(String roomId, bool isCaller, List<ChatMessage> messages)?
     connected,
-    TResult Function(String message)? error,
+    TResult Function(String message, String? roomId, bool? isCaller)? error,
     TResult Function()? disconnected,
+    TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
     required TResult orElse(),
   }) {
     if (connecting != null) {
@@ -360,10 +707,12 @@ class _$ChatStateConnectingImpl implements ChatStateConnecting {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(ChatStateInitial value) initial,
+    required TResult Function(ChatStateLoading value) loading,
     required TResult Function(ChatStateConnecting value) connecting,
     required TResult Function(ChatStateConnected value) connected,
     required TResult Function(ChatStateError value) error,
     required TResult Function(ChatStateDisconnected value) disconnected,
+    required TResult Function(ChatStateSendingMessage value) sendingMessage,
   }) {
     return connecting(this);
   }
@@ -372,10 +721,12 @@ class _$ChatStateConnectingImpl implements ChatStateConnecting {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(ChatStateInitial value)? initial,
+    TResult? Function(ChatStateLoading value)? loading,
     TResult? Function(ChatStateConnecting value)? connecting,
     TResult? Function(ChatStateConnected value)? connected,
     TResult? Function(ChatStateError value)? error,
     TResult? Function(ChatStateDisconnected value)? disconnected,
+    TResult? Function(ChatStateSendingMessage value)? sendingMessage,
   }) {
     return connecting?.call(this);
   }
@@ -384,10 +735,12 @@ class _$ChatStateConnectingImpl implements ChatStateConnecting {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(ChatStateInitial value)? initial,
+    TResult Function(ChatStateLoading value)? loading,
     TResult Function(ChatStateConnecting value)? connecting,
     TResult Function(ChatStateConnected value)? connected,
     TResult Function(ChatStateError value)? error,
     TResult Function(ChatStateDisconnected value)? disconnected,
+    TResult Function(ChatStateSendingMessage value)? sendingMessage,
     required TResult orElse(),
   }) {
     if (connecting != null) {
@@ -520,6 +873,12 @@ class _$ChatStateConnectedImpl implements ChatStateConnected {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
+    required TResult Function(
+      String? roomId,
+      bool? isCaller,
+      String? loadingMessage,
+    )
+    loading,
     required TResult Function(String roomId, bool isCaller) connecting,
     required TResult Function(
       String roomId,
@@ -527,8 +886,16 @@ class _$ChatStateConnectedImpl implements ChatStateConnected {
       List<ChatMessage> messages,
     )
     connected,
-    required TResult Function(String message) error,
+    required TResult Function(String message, String? roomId, bool? isCaller)
+    error,
     required TResult Function() disconnected,
+    required TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )
+    sendingMessage,
   }) {
     return connected(roomId, isCaller, messages);
   }
@@ -537,11 +904,20 @@ class _$ChatStateConnectedImpl implements ChatStateConnected {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
+    TResult? Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
     TResult? Function(String roomId, bool isCaller)? connecting,
     TResult? Function(String roomId, bool isCaller, List<ChatMessage> messages)?
     connected,
-    TResult? Function(String message)? error,
+    TResult? Function(String message, String? roomId, bool? isCaller)? error,
     TResult? Function()? disconnected,
+    TResult? Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
   }) {
     return connected?.call(roomId, isCaller, messages);
   }
@@ -550,11 +926,20 @@ class _$ChatStateConnectedImpl implements ChatStateConnected {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
+    TResult Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
     TResult Function(String roomId, bool isCaller)? connecting,
     TResult Function(String roomId, bool isCaller, List<ChatMessage> messages)?
     connected,
-    TResult Function(String message)? error,
+    TResult Function(String message, String? roomId, bool? isCaller)? error,
     TResult Function()? disconnected,
+    TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
     required TResult orElse(),
   }) {
     if (connected != null) {
@@ -567,10 +952,12 @@ class _$ChatStateConnectedImpl implements ChatStateConnected {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(ChatStateInitial value) initial,
+    required TResult Function(ChatStateLoading value) loading,
     required TResult Function(ChatStateConnecting value) connecting,
     required TResult Function(ChatStateConnected value) connected,
     required TResult Function(ChatStateError value) error,
     required TResult Function(ChatStateDisconnected value) disconnected,
+    required TResult Function(ChatStateSendingMessage value) sendingMessage,
   }) {
     return connected(this);
   }
@@ -579,10 +966,12 @@ class _$ChatStateConnectedImpl implements ChatStateConnected {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(ChatStateInitial value)? initial,
+    TResult? Function(ChatStateLoading value)? loading,
     TResult? Function(ChatStateConnecting value)? connecting,
     TResult? Function(ChatStateConnected value)? connected,
     TResult? Function(ChatStateError value)? error,
     TResult? Function(ChatStateDisconnected value)? disconnected,
+    TResult? Function(ChatStateSendingMessage value)? sendingMessage,
   }) {
     return connected?.call(this);
   }
@@ -591,10 +980,12 @@ class _$ChatStateConnectedImpl implements ChatStateConnected {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(ChatStateInitial value)? initial,
+    TResult Function(ChatStateLoading value)? loading,
     TResult Function(ChatStateConnecting value)? connecting,
     TResult Function(ChatStateConnected value)? connected,
     TResult Function(ChatStateError value)? error,
     TResult Function(ChatStateDisconnected value)? disconnected,
+    TResult Function(ChatStateSendingMessage value)? sendingMessage,
     required TResult orElse(),
   }) {
     if (connected != null) {
@@ -629,7 +1020,7 @@ abstract class _$$ChatStateErrorImplCopyWith<$Res> {
     $Res Function(_$ChatStateErrorImpl) then,
   ) = __$$ChatStateErrorImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({String message});
+  $Res call({String message, String? roomId, bool? isCaller});
 }
 
 /// @nodoc
@@ -645,13 +1036,25 @@ class __$$ChatStateErrorImplCopyWithImpl<$Res>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? message = null}) {
+  $Res call({
+    Object? message = null,
+    Object? roomId = freezed,
+    Object? isCaller = freezed,
+  }) {
     return _then(
       _$ChatStateErrorImpl(
         message: null == message
             ? _value.message
             : message // ignore: cast_nullable_to_non_nullable
                   as String,
+        roomId: freezed == roomId
+            ? _value.roomId
+            : roomId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        isCaller: freezed == isCaller
+            ? _value.isCaller
+            : isCaller // ignore: cast_nullable_to_non_nullable
+                  as bool?,
       ),
     );
   }
@@ -660,14 +1063,22 @@ class __$$ChatStateErrorImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$ChatStateErrorImpl implements ChatStateError {
-  const _$ChatStateErrorImpl({required this.message});
+  const _$ChatStateErrorImpl({
+    required this.message,
+    this.roomId,
+    this.isCaller,
+  });
 
   @override
   final String message;
+  @override
+  final String? roomId;
+  @override
+  final bool? isCaller;
 
   @override
   String toString() {
-    return 'ChatState.error(message: $message)';
+    return 'ChatState.error(message: $message, roomId: $roomId, isCaller: $isCaller)';
   }
 
   @override
@@ -675,11 +1086,14 @@ class _$ChatStateErrorImpl implements ChatStateError {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$ChatStateErrorImpl &&
-            (identical(other.message, message) || other.message == message));
+            (identical(other.message, message) || other.message == message) &&
+            (identical(other.roomId, roomId) || other.roomId == roomId) &&
+            (identical(other.isCaller, isCaller) ||
+                other.isCaller == isCaller));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, message);
+  int get hashCode => Object.hash(runtimeType, message, roomId, isCaller);
 
   /// Create a copy of ChatState
   /// with the given fields replaced by the non-null parameter values.
@@ -696,6 +1110,12 @@ class _$ChatStateErrorImpl implements ChatStateError {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
+    required TResult Function(
+      String? roomId,
+      bool? isCaller,
+      String? loadingMessage,
+    )
+    loading,
     required TResult Function(String roomId, bool isCaller) connecting,
     required TResult Function(
       String roomId,
@@ -703,38 +1123,64 @@ class _$ChatStateErrorImpl implements ChatStateError {
       List<ChatMessage> messages,
     )
     connected,
-    required TResult Function(String message) error,
+    required TResult Function(String message, String? roomId, bool? isCaller)
+    error,
     required TResult Function() disconnected,
+    required TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )
+    sendingMessage,
   }) {
-    return error(message);
+    return error(message, roomId, isCaller);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
+    TResult? Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
     TResult? Function(String roomId, bool isCaller)? connecting,
     TResult? Function(String roomId, bool isCaller, List<ChatMessage> messages)?
     connected,
-    TResult? Function(String message)? error,
+    TResult? Function(String message, String? roomId, bool? isCaller)? error,
     TResult? Function()? disconnected,
+    TResult? Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
   }) {
-    return error?.call(message);
+    return error?.call(message, roomId, isCaller);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
+    TResult Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
     TResult Function(String roomId, bool isCaller)? connecting,
     TResult Function(String roomId, bool isCaller, List<ChatMessage> messages)?
     connected,
-    TResult Function(String message)? error,
+    TResult Function(String message, String? roomId, bool? isCaller)? error,
     TResult Function()? disconnected,
+    TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
     required TResult orElse(),
   }) {
     if (error != null) {
-      return error(message);
+      return error(message, roomId, isCaller);
     }
     return orElse();
   }
@@ -743,10 +1189,12 @@ class _$ChatStateErrorImpl implements ChatStateError {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(ChatStateInitial value) initial,
+    required TResult Function(ChatStateLoading value) loading,
     required TResult Function(ChatStateConnecting value) connecting,
     required TResult Function(ChatStateConnected value) connected,
     required TResult Function(ChatStateError value) error,
     required TResult Function(ChatStateDisconnected value) disconnected,
+    required TResult Function(ChatStateSendingMessage value) sendingMessage,
   }) {
     return error(this);
   }
@@ -755,10 +1203,12 @@ class _$ChatStateErrorImpl implements ChatStateError {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(ChatStateInitial value)? initial,
+    TResult? Function(ChatStateLoading value)? loading,
     TResult? Function(ChatStateConnecting value)? connecting,
     TResult? Function(ChatStateConnected value)? connected,
     TResult? Function(ChatStateError value)? error,
     TResult? Function(ChatStateDisconnected value)? disconnected,
+    TResult? Function(ChatStateSendingMessage value)? sendingMessage,
   }) {
     return error?.call(this);
   }
@@ -767,10 +1217,12 @@ class _$ChatStateErrorImpl implements ChatStateError {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(ChatStateInitial value)? initial,
+    TResult Function(ChatStateLoading value)? loading,
     TResult Function(ChatStateConnecting value)? connecting,
     TResult Function(ChatStateConnected value)? connected,
     TResult Function(ChatStateError value)? error,
     TResult Function(ChatStateDisconnected value)? disconnected,
+    TResult Function(ChatStateSendingMessage value)? sendingMessage,
     required TResult orElse(),
   }) {
     if (error != null) {
@@ -781,10 +1233,15 @@ class _$ChatStateErrorImpl implements ChatStateError {
 }
 
 abstract class ChatStateError implements ChatState {
-  const factory ChatStateError({required final String message}) =
-      _$ChatStateErrorImpl;
+  const factory ChatStateError({
+    required final String message,
+    final String? roomId,
+    final bool? isCaller,
+  }) = _$ChatStateErrorImpl;
 
   String get message;
+  String? get roomId;
+  bool? get isCaller;
 
   /// Create a copy of ChatState
   /// with the given fields replaced by the non-null parameter values.
@@ -838,6 +1295,12 @@ class _$ChatStateDisconnectedImpl implements ChatStateDisconnected {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
+    required TResult Function(
+      String? roomId,
+      bool? isCaller,
+      String? loadingMessage,
+    )
+    loading,
     required TResult Function(String roomId, bool isCaller) connecting,
     required TResult Function(
       String roomId,
@@ -845,8 +1308,16 @@ class _$ChatStateDisconnectedImpl implements ChatStateDisconnected {
       List<ChatMessage> messages,
     )
     connected,
-    required TResult Function(String message) error,
+    required TResult Function(String message, String? roomId, bool? isCaller)
+    error,
     required TResult Function() disconnected,
+    required TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )
+    sendingMessage,
   }) {
     return disconnected();
   }
@@ -855,11 +1326,20 @@ class _$ChatStateDisconnectedImpl implements ChatStateDisconnected {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
+    TResult? Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
     TResult? Function(String roomId, bool isCaller)? connecting,
     TResult? Function(String roomId, bool isCaller, List<ChatMessage> messages)?
     connected,
-    TResult? Function(String message)? error,
+    TResult? Function(String message, String? roomId, bool? isCaller)? error,
     TResult? Function()? disconnected,
+    TResult? Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
   }) {
     return disconnected?.call();
   }
@@ -868,11 +1348,20 @@ class _$ChatStateDisconnectedImpl implements ChatStateDisconnected {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
+    TResult Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
     TResult Function(String roomId, bool isCaller)? connecting,
     TResult Function(String roomId, bool isCaller, List<ChatMessage> messages)?
     connected,
-    TResult Function(String message)? error,
+    TResult Function(String message, String? roomId, bool? isCaller)? error,
     TResult Function()? disconnected,
+    TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
     required TResult orElse(),
   }) {
     if (disconnected != null) {
@@ -885,10 +1374,12 @@ class _$ChatStateDisconnectedImpl implements ChatStateDisconnected {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(ChatStateInitial value) initial,
+    required TResult Function(ChatStateLoading value) loading,
     required TResult Function(ChatStateConnecting value) connecting,
     required TResult Function(ChatStateConnected value) connected,
     required TResult Function(ChatStateError value) error,
     required TResult Function(ChatStateDisconnected value) disconnected,
+    required TResult Function(ChatStateSendingMessage value) sendingMessage,
   }) {
     return disconnected(this);
   }
@@ -897,10 +1388,12 @@ class _$ChatStateDisconnectedImpl implements ChatStateDisconnected {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(ChatStateInitial value)? initial,
+    TResult? Function(ChatStateLoading value)? loading,
     TResult? Function(ChatStateConnecting value)? connecting,
     TResult? Function(ChatStateConnected value)? connected,
     TResult? Function(ChatStateError value)? error,
     TResult? Function(ChatStateDisconnected value)? disconnected,
+    TResult? Function(ChatStateSendingMessage value)? sendingMessage,
   }) {
     return disconnected?.call(this);
   }
@@ -909,10 +1402,12 @@ class _$ChatStateDisconnectedImpl implements ChatStateDisconnected {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(ChatStateInitial value)? initial,
+    TResult Function(ChatStateLoading value)? loading,
     TResult Function(ChatStateConnecting value)? connecting,
     TResult Function(ChatStateConnected value)? connected,
     TResult Function(ChatStateError value)? error,
     TResult Function(ChatStateDisconnected value)? disconnected,
+    TResult Function(ChatStateSendingMessage value)? sendingMessage,
     required TResult orElse(),
   }) {
     if (disconnected != null) {
@@ -924,4 +1419,270 @@ class _$ChatStateDisconnectedImpl implements ChatStateDisconnected {
 
 abstract class ChatStateDisconnected implements ChatState {
   const factory ChatStateDisconnected() = _$ChatStateDisconnectedImpl;
+}
+
+/// @nodoc
+abstract class _$$ChatStateSendingMessageImplCopyWith<$Res> {
+  factory _$$ChatStateSendingMessageImplCopyWith(
+    _$ChatStateSendingMessageImpl value,
+    $Res Function(_$ChatStateSendingMessageImpl) then,
+  ) = __$$ChatStateSendingMessageImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({
+    String roomId,
+    bool isCaller,
+    List<ChatMessage> messages,
+    String pendingMessage,
+  });
+}
+
+/// @nodoc
+class __$$ChatStateSendingMessageImplCopyWithImpl<$Res>
+    extends _$ChatStateCopyWithImpl<$Res, _$ChatStateSendingMessageImpl>
+    implements _$$ChatStateSendingMessageImplCopyWith<$Res> {
+  __$$ChatStateSendingMessageImplCopyWithImpl(
+    _$ChatStateSendingMessageImpl _value,
+    $Res Function(_$ChatStateSendingMessageImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of ChatState
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? roomId = null,
+    Object? isCaller = null,
+    Object? messages = null,
+    Object? pendingMessage = null,
+  }) {
+    return _then(
+      _$ChatStateSendingMessageImpl(
+        roomId: null == roomId
+            ? _value.roomId
+            : roomId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        isCaller: null == isCaller
+            ? _value.isCaller
+            : isCaller // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        messages: null == messages
+            ? _value._messages
+            : messages // ignore: cast_nullable_to_non_nullable
+                  as List<ChatMessage>,
+        pendingMessage: null == pendingMessage
+            ? _value.pendingMessage
+            : pendingMessage // ignore: cast_nullable_to_non_nullable
+                  as String,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+
+class _$ChatStateSendingMessageImpl implements ChatStateSendingMessage {
+  const _$ChatStateSendingMessageImpl({
+    required this.roomId,
+    required this.isCaller,
+    required final List<ChatMessage> messages,
+    required this.pendingMessage,
+  }) : _messages = messages;
+
+  @override
+  final String roomId;
+  @override
+  final bool isCaller;
+  final List<ChatMessage> _messages;
+  @override
+  List<ChatMessage> get messages {
+    if (_messages is EqualUnmodifiableListView) return _messages;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_messages);
+  }
+
+  @override
+  final String pendingMessage;
+
+  @override
+  String toString() {
+    return 'ChatState.sendingMessage(roomId: $roomId, isCaller: $isCaller, messages: $messages, pendingMessage: $pendingMessage)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ChatStateSendingMessageImpl &&
+            (identical(other.roomId, roomId) || other.roomId == roomId) &&
+            (identical(other.isCaller, isCaller) ||
+                other.isCaller == isCaller) &&
+            const DeepCollectionEquality().equals(other._messages, _messages) &&
+            (identical(other.pendingMessage, pendingMessage) ||
+                other.pendingMessage == pendingMessage));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    runtimeType,
+    roomId,
+    isCaller,
+    const DeepCollectionEquality().hash(_messages),
+    pendingMessage,
+  );
+
+  /// Create a copy of ChatState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ChatStateSendingMessageImplCopyWith<_$ChatStateSendingMessageImpl>
+  get copyWith =>
+      __$$ChatStateSendingMessageImplCopyWithImpl<
+        _$ChatStateSendingMessageImpl
+      >(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() initial,
+    required TResult Function(
+      String? roomId,
+      bool? isCaller,
+      String? loadingMessage,
+    )
+    loading,
+    required TResult Function(String roomId, bool isCaller) connecting,
+    required TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+    )
+    connected,
+    required TResult Function(String message, String? roomId, bool? isCaller)
+    error,
+    required TResult Function() disconnected,
+    required TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )
+    sendingMessage,
+  }) {
+    return sendingMessage(roomId, isCaller, messages, pendingMessage);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? initial,
+    TResult? Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
+    TResult? Function(String roomId, bool isCaller)? connecting,
+    TResult? Function(String roomId, bool isCaller, List<ChatMessage> messages)?
+    connected,
+    TResult? Function(String message, String? roomId, bool? isCaller)? error,
+    TResult? Function()? disconnected,
+    TResult? Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
+  }) {
+    return sendingMessage?.call(roomId, isCaller, messages, pendingMessage);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? initial,
+    TResult Function(String? roomId, bool? isCaller, String? loadingMessage)?
+    loading,
+    TResult Function(String roomId, bool isCaller)? connecting,
+    TResult Function(String roomId, bool isCaller, List<ChatMessage> messages)?
+    connected,
+    TResult Function(String message, String? roomId, bool? isCaller)? error,
+    TResult Function()? disconnected,
+    TResult Function(
+      String roomId,
+      bool isCaller,
+      List<ChatMessage> messages,
+      String pendingMessage,
+    )?
+    sendingMessage,
+    required TResult orElse(),
+  }) {
+    if (sendingMessage != null) {
+      return sendingMessage(roomId, isCaller, messages, pendingMessage);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(ChatStateInitial value) initial,
+    required TResult Function(ChatStateLoading value) loading,
+    required TResult Function(ChatStateConnecting value) connecting,
+    required TResult Function(ChatStateConnected value) connected,
+    required TResult Function(ChatStateError value) error,
+    required TResult Function(ChatStateDisconnected value) disconnected,
+    required TResult Function(ChatStateSendingMessage value) sendingMessage,
+  }) {
+    return sendingMessage(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(ChatStateInitial value)? initial,
+    TResult? Function(ChatStateLoading value)? loading,
+    TResult? Function(ChatStateConnecting value)? connecting,
+    TResult? Function(ChatStateConnected value)? connected,
+    TResult? Function(ChatStateError value)? error,
+    TResult? Function(ChatStateDisconnected value)? disconnected,
+    TResult? Function(ChatStateSendingMessage value)? sendingMessage,
+  }) {
+    return sendingMessage?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(ChatStateInitial value)? initial,
+    TResult Function(ChatStateLoading value)? loading,
+    TResult Function(ChatStateConnecting value)? connecting,
+    TResult Function(ChatStateConnected value)? connected,
+    TResult Function(ChatStateError value)? error,
+    TResult Function(ChatStateDisconnected value)? disconnected,
+    TResult Function(ChatStateSendingMessage value)? sendingMessage,
+    required TResult orElse(),
+  }) {
+    if (sendingMessage != null) {
+      return sendingMessage(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class ChatStateSendingMessage implements ChatState {
+  const factory ChatStateSendingMessage({
+    required final String roomId,
+    required final bool isCaller,
+    required final List<ChatMessage> messages,
+    required final String pendingMessage,
+  }) = _$ChatStateSendingMessageImpl;
+
+  String get roomId;
+  bool get isCaller;
+  List<ChatMessage> get messages;
+  String get pendingMessage;
+
+  /// Create a copy of ChatState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ChatStateSendingMessageImplCopyWith<_$ChatStateSendingMessageImpl>
+  get copyWith => throw _privateConstructorUsedError;
 }

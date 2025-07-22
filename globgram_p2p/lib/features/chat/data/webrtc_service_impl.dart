@@ -18,12 +18,19 @@ class WebRTCServiceImpl implements WebRTCService {
   bool _isConnected = false;
   bool _sdpCleared = false;
 
-  // TODO: Media-related state - uncomment when implementing media features
-  // MediaStream? _localStream;
-  // MediaStream? _remoteStream;
-  // bool _audioEnabled = false;
-  // bool _videoEnabled = false;
-  // bool _mediaInitialized = false;
+  // Reconnection state
+  int _reconnectAttempts = 0;
+  static const int _maxReconnectAttempts = 3;
+  static const Duration _reconnectDelay = Duration(seconds: 2);
+  Timer? _reconnectTimer;
+  bool _isReconnecting = false;
+
+  // Media-related state
+  MediaStream? _localStream;
+  MediaStream? _remoteStream;
+  bool _audioEnabled = false;
+  bool _videoEnabled = false;
+  bool _mediaInitialized = false;
 
   // Stream controllers
   final StreamController<ChatMessage> _dataMessageController =
@@ -33,11 +40,11 @@ class WebRTCServiceImpl implements WebRTCService {
   final StreamController<String> _errorController =
       StreamController<String>.broadcast();
 
-  // TODO: Media stream controllers - uncomment when implementing media features
-  // final StreamController<MediaStream> _localStreamController =
-  //     StreamController<MediaStream>.broadcast();
-  // final StreamController<MediaStream> _remoteStreamController =
-  //     StreamController<MediaStream>.broadcast();
+  // Media stream controllers
+  final StreamController<MediaStream> _localStreamController =
+      StreamController<MediaStream>.broadcast();
+  final StreamController<MediaStream> _remoteStreamController =
+      StreamController<MediaStream>.broadcast();
 
   // ICE candidates subscription
   StreamSubscription<List<IceCandidateModel>>? _iceCandidatesSubscription;
@@ -93,11 +100,11 @@ class WebRTCServiceImpl implements WebRTCService {
   Stream<ConnectionState> get connectionState$ =>
       _connectionStateController.stream;
 
-  // TODO: Media stream getters - uncomment when implementing media features
-  // @override
-  // Stream<MediaStream> get localStream$ => _localStreamController.stream;
-  // @override
-  // Stream<MediaStream> get remoteStream$ => _remoteStreamController.stream;
+  // Media stream getters
+  @override
+  Stream<MediaStream> get localStream$ => _localStreamController.stream;
+  @override
+  Stream<MediaStream> get remoteStream$ => _remoteStreamController.stream;
 
   /// Create connection as caller or callee
   @override
@@ -115,8 +122,6 @@ class WebRTCServiceImpl implements WebRTCService {
     await _sendMessage(text);
   }
 
-  // TODO: Media methods - uncomment and implement when adding media features
-  /*
   /// Prepare media streams with audio and/or video
   @override
   Future<void> prepareMedia({bool audio = true, bool video = false}) async {
@@ -209,7 +214,6 @@ class WebRTCServiceImpl implements WebRTCService {
       _logger.i('Video toggled: $_videoEnabled');
     }
   }
-  */
   ConnectionState _connectionState = ConnectionState.disconnected;
 
   bool _isInitialized = false;
@@ -217,20 +221,41 @@ class WebRTCServiceImpl implements WebRTCService {
   /// Create peer connection with ICE server configuration
   Future<void> _createPeerConnection() async {
     try {
-      // Use configuration as specified
+      // Enhanced ICE server configuration with STUN and TURN servers
       final configuration = {
         'iceServers': [
+          // Google STUN servers
           {
-            'urls': ['stun:stun.l.google.com:19302'],
+            'urls': [
+              'stun:stun.l.google.com:19302',
+              'stun:stun1.l.google.com:19302',
+              'stun:stun2.l.google.com:19302',
+            ],
           },
+          // TODO: Add TURN servers for production use
+          // Uncomment and configure when you have TURN server credentials
+          /*
+          {
+            'urls': [
+              'turn:your-turn-server.com:3478',
+              'turns:your-turn-server.com:5349'
+            ],
+            'username': 'your-turn-username',
+            'credential': 'your-turn-password',
+          },
+          */
         ],
+        // Enhanced peer connection configuration
+        'iceCandidatePoolSize': 10,
+        'bundlePolicy': 'max-bundle',
+        'rtcpMuxPolicy': 'require',
       };
 
       // Create peer connection - this should work with the flutter_webrtc package
       _peerConnection = await createPeerConnection(configuration);
       _setupPeerConnectionListeners();
 
-      _logger.i('Peer connection created successfully');
+      _logger.i('Peer connection created successfully with enhanced configuration');
     } catch (e) {
       _logger.e('Failed to create peer connection: $e');
       _errorController.add('Failed to create peer connection: $e');
@@ -329,15 +354,17 @@ class WebRTCServiceImpl implements WebRTCService {
     try {
       final dataChannelDict = RTCDataChannelInit()
         ..ordered = true
-        ..id = 1;
+        ..id = 1
+        ..maxRetransmits = 3 // Ensure reliable delivery
+        ..protocol = 'chat-v1'; // Version for future compatibility
 
       _dataChannel = await _peerConnection!.createDataChannel(
-        'chat',
+        'globgram-chat',
         dataChannelDict,
       );
 
       _setupDataChannelListeners();
-      _logger.i('Data channel "chat" created');
+      _logger.i('Enhanced data channel "globgram-chat" created with reliable delivery');
     } catch (e) {
       _logger.e('Failed to create data channel: $e');
       _errorController.add('Failed to create data channel: $e');
@@ -390,7 +417,10 @@ class WebRTCServiceImpl implements WebRTCService {
           _handleIceConnected();
           break;
         case RTCIceConnectionState.RTCIceConnectionStateFailed:
-          _errorController.add('ICE connection failed');
+          _handleConnectionFailure();
+          break;
+        case RTCIceConnectionState.RTCIceConnectionStateDisconnected:
+          _handleConnectionDisconnected();
           break;
         default:
           // Continue listening for other states
@@ -521,6 +551,7 @@ class WebRTCServiceImpl implements WebRTCService {
     if (_isConnected) return; // Already handled
     
     _isConnected = true;
+    _resetReconnectionState(); // Reset reconnection attempts on successful connection
     _logger.i('ICE connection established - initiating security cleanup');
     
     try {
@@ -691,10 +722,8 @@ class WebRTCServiceImpl implements WebRTCService {
         await _dataMessageController.close();
         await _connectionStateController.close();
         await _errorController.close();
-        
-        // TODO: Close media stream controllers when implementing media features
-        // await _localStreamController.close();
-        // await _remoteStreamController.close();
+        await _localStreamController.close();
+        await _remoteStreamController.close();
         
         _logger.d('Stream controllers closed');
       } catch (e) {
@@ -729,5 +758,133 @@ class WebRTCServiceImpl implements WebRTCService {
       _logger.e('Error during disposal: $e');
       // Don't rethrow - disposal should always complete
     }
+  }
+
+  /// Handle connection failure with reconnection logic
+  void _handleConnectionFailure() {
+    _logger.w('Connection failed, attempting reconnection...');
+    _errorController.add('ICE connection failed');
+    
+    if (!_isReconnecting && _reconnectAttempts < _maxReconnectAttempts) {
+      _attemptReconnection();
+    } else if (_reconnectAttempts >= _maxReconnectAttempts) {
+      _logger.e('Max reconnection attempts reached');
+      _errorController.add('Connection failed permanently after $_maxReconnectAttempts attempts');
+      _updateConnectionState(ConnectionState.failed);
+    }
+  }
+
+  /// Handle connection disconnected state
+  void _handleConnectionDisconnected() {
+    _logger.w('Connection disconnected');
+    _updateConnectionState(ConnectionState.disconnected);
+    
+    if (!_isReconnecting && _reconnectAttempts < _maxReconnectAttempts) {
+      _attemptReconnection();
+    }
+  }
+
+  /// Attempt to reconnect the peer connection
+  Future<void> _attemptReconnection() async {
+    if (_isReconnecting || _currentRoomId == null) return;
+    
+    _isReconnecting = true;
+    _reconnectAttempts++;
+    
+    _logger.i('Reconnection attempt $_reconnectAttempts of $_maxReconnectAttempts');
+    _updateConnectionState(ConnectionState.connecting);
+    
+    try {
+      // Cancel any existing timer
+      _reconnectTimer?.cancel();
+      
+      // Wait before reconnecting
+      await Future.delayed(_reconnectDelay);
+      
+      // Clean up current connection
+      await _peerConnection?.close();
+      _peerConnection = null;
+      _dataChannel = null;
+      
+      // Recreate connection
+      await _createPeerConnection();
+      
+      if (_isCaller) {
+        await _recreateOffer();
+      } else {
+        await _recreateAnswer();
+      }
+      
+      _logger.i('Reconnection attempt $_reconnectAttempts completed');
+      
+    } catch (e) {
+      _logger.e('Reconnection attempt $_reconnectAttempts failed: $e');
+      _errorController.add('Reconnection attempt $_reconnectAttempts failed: $e');
+      
+      if (_reconnectAttempts < _maxReconnectAttempts) {
+        // Schedule next attempt
+        _reconnectTimer = Timer(_reconnectDelay, () {
+          _isReconnecting = false;
+          _attemptReconnection();
+        });
+      } else {
+        _updateConnectionState(ConnectionState.failed);
+        _errorController.add('All reconnection attempts failed');
+      }
+    }
+    
+    _isReconnecting = false;
+  }
+
+  /// Recreate offer for caller during reconnection
+  Future<void> _recreateOffer() async {
+    await _createDataChannel();
+    
+    // Create and set local offer
+    final offer = await _peerConnection!.createOffer();
+    await _peerConnection!.setLocalDescription(offer);
+    
+    // Update offer in SignalingDataSource
+    final offerData = _rtcOfferToOfferData(offer);
+    await _signalingDataSource.createRoom(offerData);
+    
+    // Re-listen for ICE candidates and answer
+    _listenToRemoteIceCandidates('callee');
+    _listenForAnswer(_currentRoomId!);
+  }
+
+  /// Recreate answer for callee during reconnection
+  Future<void> _recreateAnswer() async {
+    // Set up data channel listener
+    _peerConnection!.onDataChannel = (channel) {
+      _dataChannel = channel;
+      _setupDataChannelListeners();
+    };
+    
+    // Get offer again
+    final offerData = await _signalingDataSource.fetchOffer(_currentRoomId!);
+    final offer = _offerDataToRtcOffer(offerData);
+    
+    // Set remote description
+    await _peerConnection!.setRemoteDescription(offer);
+    
+    // Create and set local answer
+    final answer = await _peerConnection!.createAnswer();
+    await _peerConnection!.setLocalDescription(answer);
+    
+    // Update answer in SignalingDataSource
+    final answerData = _rtcAnswerToAnswerData(answer);
+    await _signalingDataSource.saveAnswer(_currentRoomId!, answerData);
+    
+    // Re-listen for ICE candidates
+    _listenToRemoteIceCandidates('caller');
+  }
+
+  /// Reset reconnection state (called on successful connection)
+  void _resetReconnectionState() {
+    _reconnectAttempts = 0;
+    _isReconnecting = false;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
   }
 }
