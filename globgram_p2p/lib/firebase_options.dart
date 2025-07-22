@@ -49,7 +49,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '786174087282',
     projectId: 'globgram02',
     authDomain: 'globgram02.firebaseapp.com',
-    storageBucket: 'globgram02.firebasestorage.app',
+    storageBucket: 'globgram02.appspot.com',
   );
 
   // Get these values from Firebase Console > Project Settings > General > Your apps > Web app
@@ -59,7 +59,7 @@ class DefaultFirebaseOptions {
     appId: '1:786174087282:android:81cb03d084ac0b7944f2eb',
     messagingSenderId: '786174087282',
     projectId: 'globgram02',
-    storageBucket: 'globgram02.firebasestorage.app',
+    storageBucket: 'globgram02.appspot.com',
   );
 
   // Android configuration - Replace with actual Firebase Android configuration  
