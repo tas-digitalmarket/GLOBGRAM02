@@ -39,7 +39,10 @@ class RoomSelectionLocalBloc
       final roomId = await _signalingDataSource.createRoom(offer);
       _logger.i('Room created successfully: $roomId');
 
-      // Start watching for answer
+      // First emit waitingAnswer state
+      emit(RoomSelectionState.waitingAnswer(roomId: roomId));
+
+      // Then start watching for answer
       _answerSubscription = _signalingDataSource.watchAnswer(roomId).listen(
         (answer) {
           if (answer != null) {
@@ -53,8 +56,6 @@ class RoomSelectionLocalBloc
           emit(RoomSelectionState.failure(message: 'Error watching for answer: $error'));
         },
       );
-
-      emit(RoomSelectionState.waitingAnswer(roomId: roomId));
     } catch (error) {
       _logger.e('Failed to create room: $error');
       emit(RoomSelectionState.failure(message: 'Failed to create room: ${error.toString()}'));
