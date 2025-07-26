@@ -14,7 +14,7 @@ abstract class WebRTCService {
   Stream<MediaStream> get remoteStream$;
 
   // Core methods
-  Future<void> createConnection({required bool isCaller, required String roomId});
+  Future<String> createConnection({required bool isCaller, required String roomId});
   Future<void> sendText(String text);
   Future<void> dispose();
   

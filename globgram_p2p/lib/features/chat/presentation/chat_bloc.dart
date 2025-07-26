@@ -59,12 +59,31 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
       );
 
       // Initialize WebRTC connection
-      await _webrtcService.createConnection(
+      final actualRoomId = await _webrtcService.createConnection(
         isCaller: event.isCaller,
         roomId: event.roomId,
       );
 
-      _logger.i('Chat connection initialized successfully');
+      // Update state with actual room ID if it changed (for callers)
+      if (actualRoomId != event.roomId) {
+        _logger.i('Room ID updated from ${event.roomId} to $actualRoomId');
+        emit(ChatState.connecting(
+          roomId: actualRoomId,
+          isCaller: event.isCaller,
+        ));
+      }
+
+      // For caller, immediately go to connected state after room creation
+      if (event.isCaller) {
+        _logger.i('Caller successfully created room, going to connected state');
+        emit(ChatState.connected(
+          roomId: actualRoomId,
+          isCaller: event.isCaller,
+          messages: const [],
+        ));
+      }
+
+      _logger.i('Chat connection initialized successfully with room: $actualRoomId');
     } catch (error) {
       _logger.e('Failed to initialize connection: $error');
       emit(ChatState.error(
@@ -292,8 +311,15 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
   ChatState? fromJson(Map<String, dynamic> json) {
     try {
       // Check storage version for migration (v3)
-      final storedVersion = json['v'] as int?;
-      if (storedVersion != 3) {
+      final storedVersionRaw = json['v'];
+      String? storedVersion;
+      if (storedVersionRaw is String) {
+        storedVersion = storedVersionRaw;
+      } else if (storedVersionRaw is int) {
+        storedVersion = storedVersionRaw.toString();
+      }
+      
+      if (storedVersion != '3') {
         _logger.i('Storage version mismatch (stored: $storedVersion, required: 3). Ignoring old data.');
         // Return null to ignore old data and start fresh
         return null;
@@ -362,25 +388,25 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
         initial: () => {'type': 'initial'},
         loading: (roomId, isCaller, loadingMessage) => {
           'type': 'loading',
-          'roomId': roomId,
-          'isCaller': isCaller.toString(),
+          'roomId': roomId ?? '',
+          'isCaller': isCaller?.toString() ?? '',
           'loadingMessage': loadingMessage ?? '',
         },
         connecting: (roomId, isCaller) => {
           'type': 'connecting',
           'roomId': roomId,
-          'isCaller': isCaller,
+          'isCaller': isCaller.toString(),
         },
         connected: (roomId, isCaller, messages) => {
           'type': 'connected',
           'roomId': roomId,
-          'isCaller': isCaller,
+          'isCaller': isCaller.toString(),
           'messages': messages.map((e) => e.toJson()).toList(),
         },
         sendingMessage: (roomId, isCaller, messages, pendingMessage) => {
           'type': 'sendingMessage',
           'roomId': roomId,
-          'isCaller': isCaller,
+          'isCaller': isCaller.toString(),
           'messages': messages.map((e) => e.toJson()).toList(),
           'pendingMessage': pendingMessage,
         },
@@ -394,7 +420,7 @@ class ChatBloc extends HydratedBloc<ChatEvent, ChatState> {
       );
       
       // Add storage version for migration management (v3)
-      baseJson['v'] = 3;
+      baseJson['v'] = '3';
       return baseJson;
     } catch (error) {
       _logger.e('Error serializing ChatState: $error');

@@ -12,6 +12,7 @@ class RoomSelectionLocalBloc
   final SignalingDataSource _signalingDataSource;
   final Logger _logger = Logger();
   StreamSubscription<AnswerData?>? _answerSubscription;
+  Timer? _timeoutTimer;
 
   RoomSelectionLocalBloc({required SignalingDataSource signalingDataSource})
     : _signalingDataSource = signalingDataSource,
@@ -26,38 +27,19 @@ class RoomSelectionLocalBloc
     Emitter<RoomSelectionState> emit,
   ) async {
     try {
-      _logger.i('Creating new room as caller...');
+      _logger.i('Initiating room creation as caller...');
       emit(const RoomSelectionState.creating());
 
-      // Create a dummy offer for room creation
-      final offer = OfferData(
-        sdp: 'dummy-sdp-${DateTime.now().millisecondsSinceEpoch}',
-        type: 'offer',
-        timestamp: DateTime.now(),
-      );
-
-      final roomId = await _signalingDataSource.createRoom(offer);
-      _logger.i('Room created successfully: $roomId');
-
-      // First emit waitingAnswer state
-      emit(RoomSelectionState.waitingAnswer(roomId: roomId));
-
-      // Then start watching for answer
-      _answerSubscription = _signalingDataSource.watchAnswer(roomId).listen(
-        (answer) {
-          if (answer != null) {
-            _logger.i('Answer received for room: $roomId');
-            emit(RoomSelectionState.connected(roomId: roomId, isCaller: true));
-            _answerSubscription?.cancel();
-          }
-        },
-        onError: (error) {
-          _logger.e('Error watching answer: $error');
-          emit(RoomSelectionState.failure(message: 'Error watching for answer: $error'));
-        },
-      );
+      // Generate a simple room ID - WebRTC service will handle the actual room creation
+      final roomId = DateTime.now().millisecondsSinceEpoch.toString();
+      
+      _logger.i('Generated room ID: $roomId');
+      
+      _logger.i('Emitting connected state for room: $roomId');
+      emit(RoomSelectionState.connected(roomId: roomId, isCaller: true));
+      _logger.i('Connected state emitted successfully');
     } catch (error) {
-      _logger.e('Failed to create room: $error');
+      _logger.e('Failed to initiate room creation: $error');
       emit(RoomSelectionState.failure(message: 'Failed to create room: ${error.toString()}'));
     }
   }
@@ -80,17 +62,8 @@ class RoomSelectionLocalBloc
       await _signalingDataSource.fetchOffer(event.roomId);
       _logger.i('Offer validated successfully for room: ${event.roomId}');
 
-      // Create a dummy answer 
-      final answer = AnswerData(
-        sdp: 'dummy-answer-sdp-${DateTime.now().millisecondsSinceEpoch}',
-        type: 'answer',
-        timestamp: DateTime.now(),
-      );
-
-      // Save answer to the room
-      await _signalingDataSource.saveAnswer(event.roomId, answer);
-      _logger.i('Answer saved successfully for room: ${event.roomId}');
-
+      // Real answer will be created by WebRTC service when joining
+      // For now we just mark the room as connected - WebRTC service will handle the actual connection
       _logger.i('Successfully joined room: ${event.roomId}');
       emit(RoomSelectionState.connected(roomId: event.roomId, isCaller: false));
     } catch (error) {
@@ -106,12 +79,15 @@ class RoomSelectionLocalBloc
     _logger.i('Clearing room selection state');
     await _answerSubscription?.cancel();
     _answerSubscription = null;
+    _timeoutTimer?.cancel();
+    _timeoutTimer = null;
     emit(const RoomSelectionState.idle());
   }
 
   @override
   Future<void> close() async {
     await _answerSubscription?.cancel();
+    _timeoutTimer?.cancel();
     return super.close();
   }
 }

@@ -4,6 +4,7 @@ import 'package:logger/logger.dart';
 import 'package:globgram_p2p/features/chat/domain/webrtc_service.dart';
 import 'package:globgram_p2p/features/chat/domain/chat_message.dart';
 import 'package:globgram_p2p/features/room_selection/data/datasources/signaling_data_source.dart';
+import 'package:globgram_p2p/features/room_selection/data/datasources/firestore_signaling_data_source.dart';
 import 'package:globgram_p2p/features/room_selection/data/models/signaling_models.dart';
 
 /// Real WebRTC service implementation using flutter_webrtc
@@ -95,12 +96,12 @@ class WebRTCServiceImpl implements WebRTCService {
       
       if (isCaller) {
         await _handleCallerFlow();
+        // Return the actual room ID created by WebRTC service
+        return _currentRoomId!;
       } else {
         await _handleCalleeFlow();
+        return roomId;
       }
-      
-      _logger.i('WebRTC connection setup completed');
-      return roomId;
     } catch (error) {
       _logger.e('Failed to create WebRTC connection: $error');
       _connectionStateController.add(ConnectionState.failed);
@@ -118,6 +119,11 @@ class WebRTCServiceImpl implements WebRTCService {
       _logger.d('Connection state changed: $state');
       final mappedState = _mapConnectionState(state);
       _connectionStateController.add(mappedState);
+      
+      // Log data channel state when connection state changes
+      if (_dataChannel != null) {
+        _logger.d('Data channel state during connection change: ${_dataChannel!.state}');
+      }
     };
     
     // Set up ICE connection state monitoring for security cleanup
@@ -148,10 +154,12 @@ class WebRTCServiceImpl implements WebRTCService {
     // Set up data channel for callee (caller creates it explicitly)
     if (!_isCaller) {
       _peerConnection!.onDataChannel = (RTCDataChannel channel) {
-        _logger.d('Data channel received: ${channel.label}');
+        _logger.d('Data channel received by callee: ${channel.label}');
         _setupDataChannel(channel);
       };
     }
+    
+    _logger.d('Peer connection created and configured');
   }
 
   void _handleIceConnectionStateChange(RTCIceConnectionState state) async {
@@ -160,9 +168,19 @@ class WebRTCServiceImpl implements WebRTCService {
     if (!_isSecureCleanupDone && 
         (state == RTCIceConnectionState.RTCIceConnectionStateConnected ||
          state == RTCIceConnectionState.RTCIceConnectionStateCompleted)) {
+      _logger.i('ICE connected - updating connection state');
+      
+      // Emit connected state to UI
+      _logger.d('[WebRTC] state -> connected');
+      _connectionStateController.add(ConnectionState.connected);
+      
       _logger.i('ICE connected - performing secure cleanup');
       await _performSecureCleanup();
       _isSecureCleanupDone = true;
+    } else if (state == RTCIceConnectionState.RTCIceConnectionStateFailed ||
+               state == RTCIceConnectionState.RTCIceConnectionStateDisconnected) {
+      _logger.w('[WebRTC] state -> failed (ICE: $state)');
+      _connectionStateController.add(ConnectionState.failed);
     }
   }
 
@@ -189,13 +207,14 @@ class WebRTCServiceImpl implements WebRTCService {
   }
 
   Future<void> _handleCallerFlow() async {
-    _logger.d('Starting caller flow');
+    _logger.d('Starting caller flow for room: $_currentRoomId');
     
     // Create data channel
     _dataChannel = await _peerConnection!.createDataChannel(
       'chat',
       RTCDataChannelInit()..ordered = true,
     );
+    _logger.d('Data channel created by caller: ${_dataChannel!.label}, state: ${_dataChannel!.state}');
     _setupDataChannel(_dataChannel!);
     
     // Create offer
@@ -204,15 +223,21 @@ class WebRTCServiceImpl implements WebRTCService {
     
     _logger.d('Offer created and set as local description');
     
-    // Create room with offer via signaling data source
+    // Create room with the real offer in Firebase
     final offerData = OfferData(
       sdp: offer.sdp!,
       type: offer.type!,
       timestamp: DateTime.now(),
     );
     
-    _currentRoomId = await _signalingDataSource.createRoom(offerData);
-    _logger.d('Room created with ID: $_currentRoomId');
+    // Create room in Firebase with real offer using the existing room ID
+    if (_signalingDataSource is FirestoreSignalingDataSource) {
+      await (_signalingDataSource as FirestoreSignalingDataSource).createRoomWithId(_currentRoomId!, offerData);
+    } else {
+      // Fallback for other implementations
+      await _signalingDataSource.createRoom(offerData);
+    }
+    _logger.d('Room created in Firebase with real offer: $_currentRoomId');
     
     // Listen for answer
     _answerSubscription = _signalingDataSource.watchAnswer(_currentRoomId!).listen(
@@ -274,6 +299,7 @@ class WebRTCServiceImpl implements WebRTCService {
 
   void _setupDataChannel(RTCDataChannel channel) {
     _dataChannel = channel;
+    _logger.d('Setting up data channel: ${channel.label}, state: ${channel.state}');
     
     channel.onMessage = (RTCDataChannelMessage message) {
       _logger.d('Data channel message received: ${message.text}');
@@ -292,7 +318,10 @@ class WebRTCServiceImpl implements WebRTCService {
     };
     
     channel.onDataChannelState = (RTCDataChannelState state) {
-      _logger.d('Data channel state: $state');
+      _logger.d('Data channel state changed: $state');
+      if (state == RTCDataChannelState.RTCDataChannelOpen) {
+        _logger.i('Data channel is now OPEN and ready for messaging!');
+      }
     };
   }
 
@@ -337,8 +366,14 @@ class WebRTCServiceImpl implements WebRTCService {
 
   @override
   Future<void> sendText(String text) async {
+    _logger.d('Attempting to send text: $text');
+    _logger.d('Data channel state: ${_dataChannel?.state}');
+    _logger.d('Data channel is null: ${_dataChannel == null}');
+    
     if (_dataChannel == null || _dataChannel!.state != RTCDataChannelState.RTCDataChannelOpen) {
-      throw Exception('Data channel is not available or not open');
+      final error = 'Data channel is not available or not open. State: ${_dataChannel?.state}';
+      _logger.e(error);
+      throw Exception(error);
     }
     
     try {
